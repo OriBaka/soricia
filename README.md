@@ -20,7 +20,7 @@ Người xem bình thường **chỉ thấy nút chấm điểm**. Để hiện 
 Đây là chế độ ẩn giao diện, không phải đăng nhập bảo mật: ai biết tham số cũng bật được, nhưng họ chỉ sửa được dữ liệu trong **trình duyệt của họ**, không đổi được web chung hay repo GitHub.
 
 1. Vào website ở chế độ chủ web, bấm nút **Quản lý** ở góc trên (hoặc **+ Thêm bài hát** / **+ Thêm anime** trong từng mục).
-2. Điền thông tin: tên, nghệ sĩ/tên phụ, thể loại (gõ thể loại mới tuỳ thích), điểm 0–10, năm, số tập, trạng thái và ghi chú.
+2. Điền thông tin: tên, nghệ sĩ/tên phụ, thể loại (gõ thể loại mới tuỳ thích; một anime có thể có nhiều thể loại, cách nhau bằng dấu phẩy như `Action, Drama, Mecha`), điểm 0–10, năm, số tập, trạng thái và ghi chú. Bộ lọc anime sẽ tách từng thể loại để lọc riêng.
 3. Chọn ảnh bìa/poster nếu có — ảnh tự động nén trước khi lưu.
 4. Bấm **Thêm** hoặc **Lưu thay đổi**. Nút **✎ Sửa / ✕ Xoá** luôn hiện trên từng bài/anime — bấm **✎ Sửa** để đổi điểm, ghi chú hoặc thêm ảnh cho mục đã có.
 

@@ -441,10 +441,15 @@
     return copy;
   }
 
+  function genresOf(item) {
+    const raw = Array.isArray(item.genre) ? item.genre : String(item.genre || "").split(/[,;|]+|\s+\/\s+/);
+    return [...new Set(raw.map((g) => String(g).trim()).filter(Boolean))];
+  }
+
   function filterItems(items, genre, query, voteFilter) {
     const q = fold(query).trim();
     return items.filter((item) => {
-      if (genre !== "Tất cả" && item.genre !== genre) return false;
+      if (genre !== "Tất cả" && !genresOf(item).includes(genre)) return false;
       if (voteFilter === "voted" && myVotes[songKey(item)] == null) return false;
       if (voteFilter === "unvoted" && myVotes[songKey(item)] != null) return false;
       if (!q) return true;
@@ -452,7 +457,7 @@
     });
   }
 
-  const uniqueGenres = (items) => [...new Set(items.map((item) => item.genre).filter(Boolean))]
+  const uniqueGenres = (items) => [...new Set(items.flatMap(genresOf))]
     .sort((a, b) => String(a).localeCompare(String(b), "vi"));
 
   function makeChips(container, genres, active, onSelect) {
@@ -589,6 +594,7 @@
       const [from, to] = paletteFor(show.title);
       const stars = Math.round((show.score || 0) / 2);
       const watching = fold(show.status).includes("dang");
+      const meta = [...genresOf(show), show.year ? String(show.year) : null, show.episodes ? show.episodes + " tập" : null].filter(Boolean);
       return `
         <article class="anime-card">
           <div class="anime-cover" style="--c1:${from};--c2:${to}">
@@ -600,7 +606,7 @@
           <div class="anime-body">
             <h3 class="anime-title">${esc(show.title)}</h3>
             ${show.alt ? `<p class="anime-sub">${esc(show.alt)}</p>` : ""}
-            <p class="anime-sub">${esc(show.genre)} · ${show.year ? esc(show.year) + " · " : ""}${show.episodes ? esc(show.episodes) + " tập" : ""}</p>
+            <p class="anime-sub">${esc(meta.join(" · "))}</p>
             ${show.note ? `<p class="anime-note">${esc(show.note)}</p>` : ""}
             ${actionsFor("anime", show)}
             <div class="anime-foot">
