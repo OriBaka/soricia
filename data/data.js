@@ -1,6 +1,6 @@
 /** Dữ liệu xuất từ trang web Soricia. Thay nội dung data/data.js bằng file này. */
 window.SITE_DATA = {
-  "version": "2026-11-24T16:12:21Z",
+  "version": "2026-11-24T16:20:31Z",
   "profile": {
     "name": "Soricia",
     "tagline": "Những bản nhạc và thế giới tôi ở lại."
