@@ -32,6 +32,28 @@ Bạn có thể để file `data.js` trên Google Drive và nhắn mình cập n
 
 Ảnh trong `data.js` có thể là `data:image/...` (đã nén) hoặc URL `https://` công khai; ảnh chỉ nằm riêng trong Drive sẽ không tải được trên web công khai.
 
+## Bình chọn của người xem (Supabase)
+
+Khách có thể chấm điểm 1–10 cho từng bài. Web hiển thị **điểm trung bình của cộng đồng** ở trên và **điểm của tác giả** bên dưới. Mỗi trình duyệt chỉ được chấm một lần cho mọi bài (có thể đổi bằng cách xoá localStorage).
+
+Cài đặt một lần:
+
+1. Tạo project miễn phí tại https://supabase.com.
+2. Vào **SQL Editor → New query**, dán toàn bộ nội dung `supabase/setup.sql` rồi bấm Run.
+3. Vào **Project Settings → API**, lấy **Project URL** và **anon/public key**.
+4. Điền vào `data/config.js`:
+
+```js
+window.SITE_CONFIG = {
+  supabaseUrl: "https://xxxx.supabase.co",
+  supabaseAnonKey: "eyJ..."
+};
+```
+
+5. Commit/push lên `main`. Khi hai giá trị còn trống, web vẫn chạy bình thường và chỉ hiện điểm của tác giả.
+
+anon key là khoá công khai dùng được trong trình duyệt — **không dùng service_role key**. Chính sách RLS trong file SQL chỉ cho phép khách tạo và đọc lượt chấm, không cho sửa/xoá.
+
 ## Cấu trúc dữ liệu trong `data/data.js`
 
 ```js

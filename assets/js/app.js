@@ -9,6 +9,16 @@
   const VERSION_KEY = "soricia.collection.version";
   const BACKUP_KEY = "soricia.collection.backup.v1";
 
+  const CONFIG = window.SITE_CONFIG || {};
+  const SUPABASE_URL = String(CONFIG.supabaseUrl || "").replace(/\/+$/, "");
+  const SUPABASE_KEY = String(CONFIG.supabaseAnonKey || "");
+  const VOTES_ENABLED = !!(SUPABASE_URL && SUPABASE_KEY);
+  const VOTER_KEY = "soricia.voter.token";
+  const MY_VOTES_KEY = "soricia.my.votes";
+  let ratings = {};
+  let ratingsStatus = VOTES_ENABLED ? "loading" : "off";
+  let myVotes = loadMyVotes();
+
   const $ = (selector) => document.querySelector(selector);
   const clone = (value) => JSON.parse(JSON.stringify(value));
   const uid = (prefix) => prefix + "-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 7);
@@ -79,6 +89,111 @@
   const pendingImages = { song: null, anime: null };
   let lastFocused = null;
 
+  function songKey(song) {
+    return fold(song.title).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "song-" + (song.index || 0);
+  }
+
+  function loadMyVotes() {
+    try { return JSON.parse(localStorage.getItem(MY_VOTES_KEY) || "{}") || {}; }
+    catch (e) { return {}; }
+  }
+
+  function persistMyVotes() {
+    try { localStorage.setItem(MY_VOTES_KEY, JSON.stringify(myVotes)); } catch (e) { /* ignore */ }
+  }
+
+  function voterToken() {
+    let token = null;
+    try { token = localStorage.getItem(VOTER_KEY); } catch (e) { /* ignore */ }
+    if (!token) {
+      token = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : "v-" + Date.now() + "-" + Math.random().toString(36).slice(2);
+      try { localStorage.setItem(VOTER_KEY, token); } catch (e) { /* ignore */ }
+    }
+    return token;
+  }
+
+  function supabaseHeaders(extra) {
+    return Object.assign({
+      apikey: SUPABASE_KEY,
+      Authorization: "Bearer " + SUPABASE_KEY
+    }, extra || {});
+  }
+
+  async function loadRatings() {
+    if (!VOTES_ENABLED) return;
+    ratingsStatus = "loading";
+    try {
+      const res = await fetch(SUPABASE_URL + "/rest/v1/song_votes?select=song_id,score", { headers: supabaseHeaders() });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const rows = await res.json();
+      const acc = {};
+      (Array.isArray(rows) ? rows : []).forEach((row) => {
+        const id = String(row.song_id || "");
+        const score = Number(row.score);
+        if (!id || !score) return;
+        if (!acc[id]) acc[id] = { sum: 0, count: 0 };
+        acc[id].sum += score;
+        acc[id].count += 1;
+      });
+      ratings = {};
+      Object.entries(acc).forEach(([id, value]) => {
+        ratings[id] = { avg: value.sum / value.count, count: value.count };
+      });
+      ratingsStatus = "ready";
+    } catch (e) {
+      ratingsStatus = "error";
+      console.warn("Không tải được điểm bình chọn:", e);
+    }
+    renderSongs();
+  }
+
+  async function submitVote(songId, score) {
+    if (!VOTES_ENABLED) return;
+    if (myVotes[songId]) { toast("Bạn đã chấm bài này rồi."); return; }
+    try {
+      const res = await fetch(SUPABASE_URL + "/rest/v1/song_votes", {
+        method: "POST",
+        headers: supabaseHeaders({
+          "Content-Type": "application/json",
+          Prefer: "resolution=ignore-duplicates"
+        }),
+        body: JSON.stringify({ song_id: songId, score: score, voter_token: voterToken() })
+      });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      myVotes[songId] = score;
+      persistMyVotes();
+      toast("Đã ghi điểm của bạn. Cảm ơn!");
+      await loadRatings();
+    } catch (e) {
+      toast("Không gửi được điểm. Thử lại sau.");
+    }
+  }
+
+  function scoreBlock(song) {
+    const key = songKey(song);
+    if (!VOTES_ENABLED) {
+      return `<div class="song-score"><strong>${fmt(song.score)}</strong><small>điểm của tác giả</small><span class="vote-note">Bình chọn chưa được bật.</span></div>`;
+    }
+    const rating = ratings[key];
+    const avg = rating && rating.count ? fmt(rating.avg) : "—";
+    const countText = rating && rating.count ? rating.count + " lượt chấm" : "chưa có lượt chấm";
+    const buttons = Array.from({ length: 10 }, (_, i) => {
+      const n = i + 1;
+      return `<button type="button" class="vote-btn${myVotes[key] === n ? " is-picked" : ""}" data-action="vote" data-id="${esc(key)}" data-score="${n}" aria-label="Chấm ${n} điểm" title="Chấm ${n} điểm">${n}</button>`;
+    }).join("");
+    const status = ratingsStatus === "error" ? `<span class="vote-note">Chưa tải được điểm cộng đồng.</span>` : "";
+    return `
+      <div class="song-score">
+        <strong>${avg}</strong>
+        <small>điểm trung bình · ${countText}</small>
+        <div class="author-score">Điểm của tác giả: <b>${fmt(song.score)}</b></div>
+        <div class="vote-buttons" role="group" aria-label="Chấm điểm bài ${esc(song.title)}">${buttons}</div>
+        ${myVotes[key] ? `<span class="my-vote">Bạn đã chấm: ${myVotes[key]}</span>` : ""}
+        ${status}
+      </div>
+    `;
+  }
+
   const toPublic = (item) => {
     const { id, index, ...rest } = item;
     return rest;
@@ -108,6 +223,10 @@
   function sortItems(items, mode) {
     const copy = [...items];
     if (mode === "rank") return copy.sort((a, b) => a.rank - b.rank);
+    if (mode === "community") {
+      const avg = (song) => ratings[songKey(song)] ? ratings[songKey(song)].avg : -1;
+      return copy.sort((a, b) => avg(b) - avg(a) || a.index - b.index);
+    }
     if (mode === "title") return copy.sort((a, b) => String(a.title).localeCompare(String(b.title), "vi"));
     if (mode === "year") return copy.sort((a, b) => (b.year || 0) - (a.year || 0));
     return copy.sort((a, b) => (b.score || 0) - (a.score || 0) || a.index - b.index);
@@ -169,7 +288,7 @@
           </div>
           ${actionsFor("song", song)}
         </div>
-        <div class="song-score"><strong>${fmt(song.score)}</strong><small>/ 10 điểm</small></div>
+        ${scoreBlock(song)}
       </li>
     `).join("");
 
@@ -437,6 +556,7 @@
       if (opener) { openPanel(opener.dataset.openEditor); return; }
       const button = e.target.closest("button[data-action]");
       if (!button) return;
+      if (button.dataset.action === "vote") { submitVote(button.dataset.id, Number(button.dataset.score)); return; }
       if (button.dataset.action === "edit") openPanel(button.dataset.type, button.dataset.id);
       if (button.dataset.action === "delete") deleteItem(button.dataset.type, button.dataset.id);
     });
@@ -567,6 +687,7 @@
     $("#music-sort").addEventListener("change", (e) => { state.songSort = e.target.value; renderSongs(); });
     $("#anime-sort").addEventListener("change", (e) => { state.animeSort = e.target.value; renderAnime(); });
     renderAll();
+    loadRatings();
     initReveal();
   }
 

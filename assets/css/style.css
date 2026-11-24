@@ -531,3 +531,26 @@ body.panel-open .admin-panel { transform: none; }
   .field-row { grid-template-columns: 1fr 90px; }
   .panel-head, .panel-body, .panel-foot { padding-inline: 20px; }
 }
+
+/* ---------- community voting ---------- */
+.song-score { min-width: 168px; }
+.song-score .author-score {
+  margin-top: 8px; padding-top: 7px; border-top: 1px solid var(--border);
+  color: var(--muted); font-size: 10px; white-space: nowrap;
+}
+.song-score .author-score b { color: var(--violet); font-family: "Space Grotesk", sans-serif; font-size: 12px; }
+.vote-buttons { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin-top: 8px; }
+.vote-btn {
+  min-width: 0; padding: 4px 0; border-radius: 5px;
+  border: 1px solid var(--border-strong); background: var(--surface-2);
+  color: var(--muted); font-size: 10px; font-weight: 700; line-height: 1;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.vote-btn:hover { border-color: var(--accent); color: var(--accent); }
+.vote-btn.is-picked { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.my-vote, .vote-note { display: block; margin-top: 6px; color: var(--faint); font-size: 10px; }
+.vote-note { max-width: 150px; line-height: 1.4; }
+@media (max-width: 620px) {
+  .song-score { width: 100%; }
+  .vote-buttons { max-width: 210px; }
+}
