@@ -913,7 +913,8 @@
 
     $("#export-js").addEventListener("click", () => {
       const payload = {
-        version: currentVersion,
+        // Mỗi lần xuất là một phiên bản mới: người xem sẽ bỏ dữ liệu cũ trong localStorage.
+        version: new Date().toISOString(),
         profile: SEED.profile || {},
         songs: songs.map(toPublic),
         anime: anime.map(toPublic)
