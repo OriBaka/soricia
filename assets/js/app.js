@@ -691,6 +691,7 @@
     if (!OWNER_MODE) {
       $("#manage-btn").hidden = true;
       document.querySelectorAll("[data-open-editor]").forEach((btn) => { btn.hidden = true; });
+      document.querySelectorAll(".owner-only").forEach((el) => { el.hidden = true; });
     }
     initManager();
     const year = new Date().getFullYear();
