@@ -6,14 +6,14 @@
   <meta name="description" content="Bảng xếp hạng âm nhạc và nhật ký anime cá nhân của Soricia.">
   <meta name="theme-color" content="#0b0c12">
   <title>Soricia — Nhạc & Anime của tôi</title>
-  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=10">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=11">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=10">
-  <script src="data/data.js?v=10"></script>
-  <script src="data/config.js?v=10"></script>
-  <script src="assets/js/app.js?v=10" defer></script>
+  <link rel="stylesheet" href="assets/css/style.css?v=11">
+  <script src="data/data.js?v=11"></script>
+  <script src="data/config.js?v=11"></script>
+  <script src="assets/js/app.js?v=11" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Chuyển đến nội dung</a>
@@ -29,7 +29,7 @@
         <a href="#overview">Tổng quan</a>
         <a href="#music">Âm nhạc</a>
         <a href="#anime">Anime</a>
-        <a href="#customize">Cá nhân hoá</a>
+        <a href="#customize" class="owner-only">Cá nhân hoá</a>
       </nav>
       <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Đổi giao diện sáng/tối" title="Đổi giao diện">
         <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.4 14.5A8.6 8.6 0 0 1 9.5 3.6 8.6 8.6 0 1 0 20.4 14.5Z"/></svg>
@@ -86,7 +86,7 @@
           <div>
             <p class="section-kicker">01 / Âm nhạc</p>
             <h2>Bài hát xếp hạng theo thể loại</h2>
-            <p class="section-desc">Lọc theo thể loại để xem bảng xếp hạng riêng của từng dòng nhạc. Bấm <strong>✎ Sửa</strong> trên bài bất kỳ để đổi điểm, ghi chú hoặc thêm ảnh bìa.</p>
+            <p class="section-desc">Lọc theo thể loại để xem bảng xếp hạng riêng của từng dòng nhạc. <span class="owner-only">Bấm <strong>✎ Sửa</strong> trên bài bất kỳ để đổi điểm, ghi chú hoặc thêm ảnh bìa.</span></p>
           </div>
           <div class="section-side">
             <p class="section-count"><span id="music-count">0</span> bài hát</p>
@@ -112,7 +112,7 @@
           <div>
             <p class="section-kicker">02 / Anime</p>
             <h2>Những bộ tôi đã xem</h2>
-            <p class="section-desc">Điểm, trạng thái và cảm nghĩ như một cuốn sổ xem phim. Bấm <strong>✎ Sửa</strong> trên từng tựa để đổi thông tin hoặc thêm poster.</p>
+            <p class="section-desc">Điểm, trạng thái và cảm nghĩ như một cuốn sổ xem phim. <span class="owner-only">Bấm <strong>✎ Sửa</strong> trên từng tựa để đổi thông tin hoặc thêm poster.</span></p>
           </div>
           <div class="section-side">
             <p class="section-count"><span id="anime-count">0</span> tựa anime</p>
@@ -132,7 +132,7 @@
       </div>
     </section>
 
-    <section class="section section-customize" id="customize">
+    <section class="section section-customize owner-only" id="customize">
       <div class="container customize-grid reveal">
         <div>
           <p class="section-kicker">03 / Cá nhân hoá</p>
