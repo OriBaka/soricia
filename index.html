@@ -6,14 +6,14 @@
   <meta name="description" content="Bảng xếp hạng âm nhạc và nhật ký anime cá nhân của Soricia.">
   <meta name="theme-color" content="#0b0c12">
   <title>Soricia — Nhạc & Anime của tôi</title>
-  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=25">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=26">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=25">
-  <script src="data/data.js?v=25"></script>
-  <script src="data/config.js?v=25"></script>
-  <script src="assets/js/app.js?v=25" defer></script>
+  <link rel="stylesheet" href="assets/css/style.css?v=26">
+  <script src="data/data.js?v=26"></script>
+  <script src="data/config.js?v=26"></script>
+  <script src="assets/js/app.js?v=26" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Chuyển đến nội dung</a>
@@ -29,7 +29,6 @@
         <a href="#overview">Tổng quan</a>
         <a href="#music">Âm nhạc</a>
         <a href="#anime">Anime</a>
-        <a href="#customize" class="owner-only">Cá nhân hoá</a>
       </nav>
       <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Đổi giao diện sáng/tối" title="Đổi giao diện">
         <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.4 14.5A8.6 8.6 0 0 1 9.5 3.6 8.6 8.6 0 1 0 20.4 14.5Z"/></svg>
@@ -138,30 +137,6 @@
         </div>
         <div class="anime-grid" id="anime-list" aria-live="polite"></div>
         <p class="empty-state" id="anime-empty" hidden>Chưa có anime nào khớp với bộ lọc này.</p>
-      </div>
-    </section>
-
-    <section class="section section-customize owner-only" id="customize">
-      <div class="container customize-grid reveal">
-        <div>
-          <p class="section-kicker">03 / Cá nhân hoá</p>
-          <h2>Muốn đổi danh sách?<br><em>Ngay trên web luôn.</em></h2>
-          <p class="section-desc">Bấm <strong>Quản lý</strong> ở góc trên để thêm bài hát, anime, thể loại và ảnh — mọi thay đổi lưu ngay trong trình duyệt của bạn. Muốn chia sẻ cho mọi người, bấm <strong>Tải data.js</strong> trong phần Quản lý rồi thay file trên GitHub.</p>
-        </div>
-        <div class="code-card">
-          <div class="code-head"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span>data/data.js</span></div>
-<pre><code>window.SITE_DATA = {
-  profile: { name: "Soricia" },
-  songs: [
-    { title: "…", artist: "…", genre: "Pop",
-      score: 9.5, year: 2024, note: "…" }
-  ],
-  anime: [
-    { title: "…", genre: "Slice of Life",
-      score: 9, status: "Đã xem", note: "…" }
-  ]
-};</code></pre>
-        </div>
       </div>
     </section>
   </main>
