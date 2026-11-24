@@ -430,12 +430,12 @@ code { font-family: "SFMono-Regular", Consolas, monospace; font-size: .9em; colo
 .anime-cover::after { content: ""; position: absolute; inset: 0; z-index: 1; background: linear-gradient(180deg, rgba(0,0,0,.05), rgba(0,0,0,.68)); }
 .anime-cover .anime-initials, .anime-cover .status-tag, .anime-cover .anime-cover-rank { z-index: 2; }
 
-.item-actions { display: none; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
-body.panel-open .item-actions { display: flex; }
+.item-actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
 .item-actions button {
   padding: 3px 9px; border-radius: 7px; border: 1px solid var(--border-strong);
   background: var(--surface-2); color: var(--muted); font-size: 11px; font-weight: 600;
 }
+.item-actions button[data-action="edit"] { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
 .item-actions button:hover { color: var(--accent); border-color: var(--accent); }
 .item-actions .is-danger:hover { color: var(--pink); border-color: var(--pink); }
 .anime-actions { margin-top: 12px; }

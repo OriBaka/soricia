@@ -14,7 +14,7 @@ Chạy hoàn toàn bằng HTML/CSS/JavaScript tĩnh, không cần cài đặt ha
 1. Vào website, bấm nút **Quản lý** ở góc trên (hoặc **+ Thêm bài hát** / **+ Thêm anime** trong từng mục).
 2. Điền thông tin: tên, nghệ sĩ/tên phụ, thể loại (gõ thể loại mới tuỳ thích), điểm 0–10, năm, số tập, trạng thái và ghi chú.
 3. Chọn ảnh bìa/poster nếu có — ảnh tự động nén trước khi lưu.
-4. Bấm **Thêm** hoặc **Lưu thay đổi**. Nút **Sửa / Xoá** hiện trên từng mục trong lúc mở bảng Quản lý.
+4. Bấm **Thêm** hoặc **Lưu thay đổi**. Nút **✎ Sửa / ✕ Xoá** luôn hiện trên từng bài/anime — bấm **✎ Sửa** để đổi điểm, ghi chú hoặc thêm ảnh cho mục đã có.
 
 Dữ liệu được lưu trong **trình duyệt của thiết bị đó** (`localStorage`). Để mang sang thiết bị khác hoặc đưa lên GitHub, mở tab **Dữ liệu**:
 
