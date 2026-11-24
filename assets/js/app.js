@@ -59,6 +59,12 @@
     anime: (data && data.anime ? data.anime : []).map((x) => expandItem(x, "anime"))
   });
   const clampScore = (value) => Math.min(10, Math.max(0, Number(value) || 0));
+  function youtubeId(value) {
+    const text = String(value ?? "").trim();
+    if (/^[\w-]{11}$/.test(text)) return text;
+    const match = text.match(/(?:v=|youtu\.be\/|youtube\.com\/(?:embed\/|shorts\/|live\/|watch\/))([\w-]{11})/i);
+    return match ? match[1] : null;
+  }
 
   const palettes = [
     ["#6d5dfc", "#1f9c8a"], ["#e0567a", "#7d4bcf"], ["#f0a13c", "#b8465f"],
@@ -81,6 +87,7 @@
       clean.score = clampScore(clean.score);
       if (!clean.genre) clean.genre = "Khác";
       if (clean.image && !/^(data:image\/|https?:\/\/)/i.test(clean.image)) clean.image = null;
+      clean.youtube = youtubeId(clean.youtube) || null;
       return clean;
     });
   }
@@ -284,6 +291,20 @@
     toast.timer = setTimeout(() => el.classList.remove("is-visible"), 2800);
   }
 
+  function openPlayer(id) {
+    const video = youtubeId(id);
+    if (!video) return;
+    $("#player-frame").innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(video)}?autoplay=1&rel=0" title="Nghe bài hát" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+    $("#player-modal").hidden = false;
+    document.body.classList.add("player-open");
+  }
+
+  function closePlayer() {
+    $("#player-modal").hidden = true;
+    $("#player-frame").innerHTML = "";
+    document.body.classList.remove("player-open");
+  }
+
   function sortItems(items, mode) {
     const copy = [...items];
     if (mode === "rank") return copy.sort((a, b) => a.rank - b.rank);
@@ -352,6 +373,12 @@
             <span class="meter" title="Điểm ${fmt(song.score)}/10"><span style="width:${Math.min(100, Math.max(0, song.score * 10))}%"></span></span>
           </div>
           ${actionsFor("song", song)}
+          <div class="listen-row">
+            ${song.youtube
+              ? `<button type="button" class="listen-btn" data-play="${esc(song.youtube)}" aria-label="Nghe ${esc(song.title)}">▶ Nghe</button>
+                 <a class="listen-link" href="https://www.youtube.com/watch?v=${esc(song.youtube)}" target="_blank" rel="noopener noreferrer">Mở YouTube ↗</a>`
+              : `<a class="listen-btn" href="https://www.youtube.com/results?search_query=${encodeURIComponent(song.title + " " + (song.artist || ""))}" target="_blank" rel="noopener noreferrer">🔎 Tìm bài trên YouTube</a>`}
+          </div>
         </div>
         ${scoreBlock(song)}
       </li>
@@ -513,7 +540,7 @@
     resetForm(type);
     if (!item) return;
     const fields = type === "song"
-      ? { title: "song-title", artist: "song-artist", genre: "song-genre", score: "song-score", year: "song-year", note: "song-note" }
+      ? { title: "song-title", artist: "song-artist", genre: "song-genre", score: "song-score", year: "song-year", note: "song-note", youtube: "song-youtube" }
       : { title: "anime-title", alt: "anime-alt", genre: "anime-genre", score: "anime-score", year: "anime-year", episodes: "anime-episodes", status: "anime-status", note: "anime-note" };
     Object.entries(fields).forEach(([key, inputId]) => {
       const el = $("#" + inputId);
@@ -571,6 +598,7 @@
     };
     if (type === "song") {
       item.artist = $("#song-artist").value.trim() || "Không rõ";
+      item.youtube = youtubeId($("#song-youtube").value);
     } else {
       item.alt = $("#anime-alt").value.trim() || null;
       item.episodes = numberOrNull("anime-episodes");
@@ -611,13 +639,18 @@
     $("#panel-close").addEventListener("click", closePanel);
     $("#panel-backdrop").addEventListener("click", closePanel);
     document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && document.body.classList.contains("panel-open")) closePanel();
+      if (e.key !== "Escape") return;
+      if (!$("#player-modal").hidden) closePlayer();
+      else if (document.body.classList.contains("panel-open")) closePanel();
     });
     document.querySelectorAll(".panel-tab").forEach((btn) => {
       btn.addEventListener("click", () => setTab(btn.dataset.tab));
     });
 
     document.addEventListener("click", (e) => {
+      if (e.target.closest("[data-close-player]")) { closePlayer(); return; }
+      const play = e.target.closest("[data-play]");
+      if (play) { openPlayer(play.dataset.play); return; }
       const opener = e.target.closest("[data-open-editor]");
       if (opener) { openPanel(opener.dataset.openEditor); return; }
       const button = e.target.closest("button[data-action]");
