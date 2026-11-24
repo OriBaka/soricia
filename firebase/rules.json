@@ -1,0 +1,12 @@
+{
+  "rules": {
+    "votes": {
+      ".read": true,
+      "$song": {
+        "$voter": {
+          ".write": "auth == null && newData.isNumber() && newData.val() >= 1 && newData.val() <= 10"
+        }
+      }
+    }
+  }
+}

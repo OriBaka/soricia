@@ -32,27 +32,27 @@ Bạn có thể để file `data.js` trên Google Drive và nhắn mình cập n
 
 Ảnh trong `data.js` có thể là `data:image/...` (đã nén) hoặc URL `https://` công khai; ảnh chỉ nằm riêng trong Drive sẽ không tải được trên web công khai.
 
-## Bình chọn của người xem (Supabase)
+## Bình chọn của người xem (Firebase Realtime Database)
 
-Khách có thể chấm điểm 1–10 cho từng bài. Web hiển thị **điểm trung bình của cộng đồng** ở trên và **điểm của tác giả** bên dưới. Mỗi trình duyệt chỉ được chấm một lần cho mọi bài (có thể đổi bằng cách xoá localStorage).
+Khách chấm 1–10 cho từng bài. Web hiển thị **điểm trung bình cộng đồng** ở trên và **điểm của tác giả** bên dưới. Mỗi trình duyệt có một mã ngẫu nhiên nên chỉ một lượt chấm cho mỗi bài (có thể đổi bằng cách xoá localStorage).
 
 Cài đặt một lần:
 
-1. Tạo project miễn phí tại https://supabase.com.
-2. Vào **SQL Editor → New query**, dán toàn bộ nội dung `supabase/setup.sql` rồi bấm Run.
-3. Vào **Project Settings → API**, lấy **Project URL** và **anon/public key**.
-4. Điền vào `data/config.js`:
+1. Tạo project miễn phí tại https://console.firebase.google.com (gói Spark).
+2. Vào **Build → Realtime Database → Create database**.
+3. Vào tab **Rules**, thay toàn bộ nội dung bằng file [`firebase/rules.json`](firebase/rules.json) rồi bấm **Publish**.
+4. Giữ nguyên Database URL trong `data/config.js`:
 
 ```js
 window.SITE_CONFIG = {
-  supabaseUrl: "https://xxxx.supabase.co",
-  supabaseAnonKey: "eyJ..."
+  firebaseUrl: "https://soricia-default-rtdb.firebaseio.com",
+  votesPath: "votes"
 };
 ```
 
-5. Commit/push lên `main`. Khi hai giá trị còn trống, web vẫn chạy bình thường và chỉ hiện điểm của tác giả.
+5. Commit/push lên `main`. Nếu `firebaseUrl` để trống, web vẫn chạy và chỉ hiện điểm tác giả.
 
-anon key là khoá công khai dùng được trong trình duyệt — **không dùng service_role key**. Chính sách RLS trong file SQL chỉ cho phép khách tạo và đọc lượt chấm, không cho sửa/xoá.
+Rules chỉ cho phép khách đọc bảng `votes` và ghi số từ 1–10 vào từng lượt chấm; không cho xoá hoặc ghi dữ liệu ngoài phạm vi đó. URL database là thông tin công khai, không phải secret.
 
 ## Cấu trúc dữ liệu trong `data/data.js`
 
@@ -88,4 +88,6 @@ index.html            Trang chính + bảng quản lý
 assets/css/style.css  Giao diện, ảnh thumbnail, bảng quản lý
 assets/js/app.js      Render, lọc, lưu trình duyệt, nén ảnh, xuất/nhập
 data/data.js          Dữ liệu khởi tạo (seed)
+data/config.js        Cấu hình Firebase Realtime Database
+firebase/rules.json   Quyền cho khách vote (dán vào Firebase → Rules)
 ```
