@@ -66,7 +66,7 @@ Rules chỉ cho phép khách đọc bảng `votes` và ghi số từ 1–10 vào
 
 Phần Âm nhạc có 2 tab:
 
-- **Bảng xếp hạng**: xếp theo **điểm trung bình vote cộng đồng** (mặc định), hiện điểm trung bình, điểm của tác giả và ô chấm điểm. Mỗi bài có số hạng riêng `#01`, `#02`… (không chia sẻ hạng). Các bài cùng điểm được xếp ngẫu nhiên với nhau; thứ tự ngẫu nhiên này được lưu trong trình duyệt để không đổi mỗi lần tải lại. Có thể đổi kiểu sắp xếp bằng ô “Sắp xếp bài hát”.
+- **Bảng xếp hạng**: xếp theo **điểm trung bình vote cộng đồng** (mặc định), hiện điểm trung bình, điểm của tác giả và ô chấm điểm. Mỗi bài có số hạng riêng `#01`, `#02`… (không chia sẻ hạng). Các bài cùng điểm được xếp ngẫu nhiên với nhau; thứ tự ngẫu nhiên này được lưu trong trình duyệt để không đổi mỗi lần tải lại. Có thể đổi kiểu sắp xếp bằng ô “Sắp xếp bài hát”. Cạnh bộ lọc thể loại có thêm 3 chip **Tất cả / Đã vote / Chưa vote** (kèm số bài), dùng được ở cả hai tab; sau khi gửi điểm, bài đó chuyển sang nhóm “Đã vote”.
 - **Vote nhạc**: ẩn điểm cộng đồng, điểm tác giả, thanh điểm và ô thống kê điểm trung bình. Mỗi bài chỉ hiện ô chấm 1–10; sau khi bạn bấm **Gửi**, bài đó mới lộ điểm trung bình, điểm tác giả và cho phép **Sửa** điểm. Các bài chưa chấm vẫn giấu điểm. Tab này tự sắp theo thứ hạng có sẵn để không lộ điểm qua thứ tự sắp xếp; quay lại **Bảng xếp hạng** sẽ khôi phục kiểu sắp xếp cũ.
 
 ## Nghe nhạc ngay trên web
