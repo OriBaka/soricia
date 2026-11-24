@@ -30,6 +30,34 @@
   })[ch]);
   const fold = (value) => String(value ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   const fmt = (score) => Number(score || 0).toFixed(1);
+
+  // Ảnh bìa có sẵn trong data/data.js — không cần nhét lại vào localStorage (dễ vượt hạn mức ~5MB).
+  const SEED_SENTINEL = "__from_data_js__";
+  const itemKey = (item, type) => fold(item.title) + "|" + fold(type === "song" ? item.artist : item.alt);
+  const seedImageMaps = { song: new Map(), anime: new Map() };
+  (SEED.songs || []).forEach((item) => { if (item.image) seedImageMaps.song.set(itemKey(item, "song"), item.image); });
+  (SEED.anime || []).forEach((item) => { if (item.image) seedImageMaps.anime.set(itemKey(item, "anime"), item.image); });
+  const seedImageSets = {
+    song: new Set(seedImageMaps.song.values()),
+    anime: new Set(seedImageMaps.anime.values())
+  };
+  const compactItem = (item, type) =>
+    item.image && seedImageSets[type] && seedImageSets[type].has(item.image)
+      ? { ...item, image: SEED_SENTINEL, seedKey: itemKey(item, type) }
+      : item;
+  const expandItem = (item, type) => {
+    if (item.image !== SEED_SENTINEL) return item;
+    const { seedKey, ...rest } = item;
+    return { ...rest, image: seedImageMaps[type].get(seedKey || itemKey(item, type)) || null };
+  };
+  const compactCollection = (data) => ({
+    songs: (data && data.songs ? data.songs : []).map((x) => compactItem(x, "song")),
+    anime: (data && data.anime ? data.anime : []).map((x) => compactItem(x, "anime"))
+  });
+  const expandCollection = (data) => ({
+    songs: (data && data.songs ? data.songs : []).map((x) => expandItem(x, "song")),
+    anime: (data && data.anime ? data.anime : []).map((x) => expandItem(x, "anime"))
+  });
   const clampScore = (value) => Math.min(10, Math.max(0, Number(value) || 0));
 
   const palettes = [
@@ -65,14 +93,25 @@
     try {
       const storedVersion = localStorage.getItem(VERSION_KEY);
       const raw = localStorage.getItem(STORAGE_KEY);
+      // Old saved data may hold every cover as base64 — shrink it before anything else.
+      const oldBackup = localStorage.getItem(BACKUP_KEY);
+      if (oldBackup) {
+        try {
+          const smaller = JSON.stringify(compactCollection(JSON.parse(oldBackup)));
+          if (smaller.length < oldBackup.length) localStorage.setItem(BACKUP_KEY, smaller);
+        } catch (e) { /* ignore corrupt backup */ }
+      }
       if (storedVersion !== currentVersion) {
         // A newer data.js arrived (e.g. synced from Google Drive): the repo wins.
-        if (raw) localStorage.setItem(BACKUP_KEY, raw);
+        if (raw) {
+          try { localStorage.setItem(BACKUP_KEY, JSON.stringify(compactCollection(JSON.parse(raw)))); }
+          catch (e) { /* ignore corrupt data */ }
+        }
         localStorage.setItem(VERSION_KEY, currentVersion);
         return seedCollection();
       }
       if (raw) {
-        const parsed = JSON.parse(raw);
+        const parsed = expandCollection(JSON.parse(raw));
         if (Array.isArray(parsed.songs) || Array.isArray(parsed.anime)) {
           return { songs: normalize(parsed.songs, "song"), anime: normalize(parsed.anime, "anime") };
         }
@@ -216,14 +255,23 @@
   };
 
   function save() {
+    const json = JSON.stringify(compactCollection({
+      songs: songs.map(toPublic), anime: anime.map(toPublic)
+    }));
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        songs: songs.map(toPublic), anime: anime.map(toPublic)
-      }));
+      localStorage.setItem(STORAGE_KEY, json);
       localStorage.setItem(VERSION_KEY, currentVersion);
       return true;
     } catch (e) {
-      toast("Không lưu được: bộ nhớ trình duyệt đầy. Hãy xuất JSON rồi xoá bớt ảnh.");
+      // A stale backup from an older version can alone fill the quota.
+      try {
+        localStorage.removeItem(BACKUP_KEY);
+        localStorage.setItem(STORAGE_KEY, json);
+        localStorage.setItem(VERSION_KEY, currentVersion);
+        toast("Đã lưu (đã dọn bản sao cũ trong trình duyệt để đủ chỗ).");
+        return true;
+      } catch (e2) { /* genuinely full or storage disabled */ }
+      toast("Không lưu được: bộ nhớ trình duyệt đầy. Hãy tải file JSON rồi xoá bớt ảnh bạn tự thêm.");
       return false;
     }
   }
@@ -666,7 +714,7 @@
         return;
       }
       try {
-        const parsed = JSON.parse(backup);
+        const parsed = expandCollection(JSON.parse(backup));
         songs = normalize(parsed.songs, "song");
         anime = normalize(parsed.anime, "anime");
         save(); renderAll();
