@@ -62,6 +62,12 @@ window.SITE_CONFIG = {
 
 Rules chỉ cho phép khách đọc bảng `votes` và ghi số từ 1–10 vào từng lượt chấm; không cho xoá hoặc ghi dữ liệu ngoài phạm vi đó. URL database là thông tin công khai, không phải secret.
 
+## Nghe nhạc ngay trên web
+
+Mỗi bài có nút **▶ Nghe**: bấm mở trình phát YouTube ngay trong trang (không rời khỏi web). Link được lưu trong trường `youtube` của từng bài trong `data/data.js` (44/45 bài đã tự tìm và kiểm tra còn hoạt động). Bài chưa có link hiện nút **🔎 Tìm bài trên YouTube**. Chủ web có thể dán link mới vào ô **Link YouTube** trong form Sửa/Thêm rồi lưu; chấp nhận cả `https://youtu.be/...`, `youtube.com/watch?v=...` hoặc ID 11 ký tự.
+
+YouTube có thể chặn nhúng ở một số video/quốc gia; nút **Mở YouTube ↗** luôn có sẵn làm phương án dự phòng. Web chỉ nhúng video, không tải hoặc lưu file nhạc có bản quyền.
+
 ## Cấu trúc dữ liệu trong `data/data.js`
 
 ```js
@@ -69,7 +75,8 @@ window.SITE_DATA = {
   profile: { name: "Soricia" },
   songs: [
     { title: "Tên bài", artist: "Nghệ sĩ", genre: "Phonk", score: 10,
-      year: 2025, note: "Cảm nghĩ", image: "assets/covers/ten-bai.jpg" }
+      year: 2025, note: "Cảm nghĩ", image: "assets/covers/ten-bai.jpg",
+      youtube: "gIYb014up6g" }
   ],
   anime: [
     { title: "Tên anime", genre: "Drama", score: 9, year: 2018,

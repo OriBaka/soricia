@@ -575,3 +575,29 @@ body.panel-open .admin-panel { transform: none; }
 }
 .vote-form button:hover { filter: brightness(1.08); }
 @media (max-width: 620px) { .vote-form { max-width: 210px; } }
+
+/* ---------- in-page music player ---------- */
+.listen-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 10px; }
+.listen-btn, .listen-link {
+  display: inline-flex; align-items: center; justify-content: center; min-height: 30px;
+  padding: 4px 12px; border-radius: 8px; border: 1px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--text);
+  font-size: 12px; font-weight: 700; text-decoration: none; cursor: pointer;
+}
+.listen-btn:hover, .listen-link:hover { background: color-mix(in srgb, var(--accent) 25%, transparent); }
+.listen-link { border-color: var(--border-strong); background: transparent; color: var(--muted); font-weight: 600; }
+body.player-open { overflow: hidden; }
+.player-modal { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 18px; }
+.player-backdrop { position: absolute; inset: 0; background: rgba(3, 4, 8, .82); backdrop-filter: blur(5px); }
+.player-box { position: relative; width: min(100%, 760px); }
+.player-frame { aspect-ratio: 16 / 9; width: 100%; border-radius: 14px; overflow: hidden; background: #000; box-shadow: var(--shadow); }
+.player-frame iframe { display: block; width: 100%; height: 100%; border: 0; }
+.player-close {
+  position: absolute; top: -14px; right: -6px; z-index: 2; width: 36px; height: 36px;
+  border-radius: 50%; border: 1px solid var(--border-strong); background: var(--surface-2);
+  color: var(--text); font-size: 15px; font-weight: 700; cursor: pointer;
+}
+@media (max-width: 620px) {
+  .player-close { top: -40px; right: 0; }
+  .listen-row { gap: 7px; }
+}

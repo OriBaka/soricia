@@ -6,14 +6,14 @@
   <meta name="description" content="Bảng xếp hạng âm nhạc và nhật ký anime cá nhân của Soricia.">
   <meta name="theme-color" content="#0b0c12">
   <title>Soricia — Nhạc & Anime của tôi</title>
-  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=15">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=16">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=15">
-  <script src="data/data.js?v=15"></script>
-  <script src="data/config.js?v=15"></script>
-  <script src="assets/js/app.js?v=15" defer></script>
+  <link rel="stylesheet" href="assets/css/style.css?v=16">
+  <script src="data/data.js?v=16"></script>
+  <script src="data/config.js?v=16"></script>
+  <script src="assets/js/app.js?v=16" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Chuyển đến nội dung</a>
@@ -182,6 +182,7 @@
           <div class="field field-small"><label for="song-score">Điểm /10</label><input id="song-score" type="number" min="0" max="10" step="0.1" value="8" inputmode="decimal"></div>
         </div>
         <div class="field"><label for="song-year">Năm phát hành</label><input id="song-year" type="number" min="1900" max="2100" placeholder="2025" inputmode="numeric"></div>
+        <div class="field"><label for="song-youtube">Link YouTube (để nút Nghe)</label><input id="song-youtube" placeholder="https://youtu.be/... hoặc ID video" maxlength="200"></div>
         <div class="field"><label for="song-note">Ghi chú cá nhân</label><textarea id="song-note" rows="3" maxlength="300" placeholder="Nghe trên đường về nhà…"></textarea></div>
         <div class="field">
           <label>Ảnh bìa</label>
@@ -235,6 +236,14 @@
     <div class="panel-foot">Thay đổi lưu tự động trong trình duyệt này. Nhấn <strong>Xuất</strong> để giữ bản sao lưu.</div>
   </aside>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <div class="player-modal" id="player-modal" hidden role="dialog" aria-modal="true" aria-label="Trình phát nhạc">
+    <div class="player-backdrop" data-close-player></div>
+    <div class="player-box">
+      <button type="button" class="player-close" data-close-player aria-label="Đóng trình phát">✕</button>
+      <div class="player-frame" id="player-frame"></div>
+    </div>
+  </div>
 
   <footer class="site-footer">
     <div class="container footer-inner">
