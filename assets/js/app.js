@@ -95,7 +95,11 @@
     `).join("");
 
     $("#music-count").textContent = String(items.length);
-    $("#music-empty").hidden = items.length > 0;
+    const empty = $("#music-empty");
+    empty.hidden = items.length > 0;
+    empty.textContent = songs.length === 0
+      ? "Chưa có bài hát nào trong danh sách. Gửi tên bài để mình thêm nhé."
+      : "Không tìm thấy bài hát phù hợp. Thử đổi từ khoá hoặc thể loại nhé.";
   }
 
   function renderAnime() {
@@ -128,7 +132,11 @@
     }).join("");
 
     $("#anime-count").textContent = String(items.length);
-    $("#anime-empty").hidden = items.length > 0;
+    const empty = $("#anime-empty");
+    empty.hidden = items.length > 0;
+    empty.textContent = anime.length === 0
+      ? "Chưa có anime nào trong danh sách. Gửi tên phim để mình thêm nhé."
+      : "Chưa có anime nào khớp với bộ lọc này.";
   }
 
   function fillHeroAndStats() {
@@ -139,19 +147,29 @@
       $("#hero-song-artist").textContent = bestSong.artist || "";
       $("#hero-song-genre").textContent = bestSong.genre || "";
       $("#hero-song-score").textContent = fmt(bestSong.score);
+    } else {
+      $("#hero-song-title").textContent = "Chưa có bài hát";
+      $("#hero-song-artist").textContent = "Danh sách đang chờ cập nhật";
+      $("#hero-song-genre").textContent = "Sắp thêm";
+      $("#hero-song-score").textContent = "—";
     }
     if (bestAnime) {
       $("#hero-anime-title").textContent = bestAnime.title;
       $("#hero-anime-meta").textContent = [bestAnime.year, bestAnime.episodes ? bestAnime.episodes + " tập" : null].filter(Boolean).join(" · ");
       $("#hero-anime-genre").textContent = bestAnime.genre || "";
       $("#hero-anime-score").textContent = fmt(bestAnime.score);
+    } else {
+      $("#hero-anime-title").textContent = "Chưa có anime";
+      $("#hero-anime-meta").textContent = "Danh sách đang chờ cập nhật";
+      $("#hero-anime-genre").textContent = "Sắp thêm";
+      $("#hero-anime-score").textContent = "—";
     }
     const allScores = [...songs, ...anime].map((item) => Number(item.score) || 0);
     const avg = allScores.length ? allScores.reduce((a, b) => a + b, 0) / allScores.length : 0;
     document.querySelector('[data-stat="songs"]').textContent = songs.length;
     document.querySelector('[data-stat="genres"]').textContent = uniqueGenres(songs).length;
     document.querySelector('[data-stat="anime"]').textContent = anime.length;
-    document.querySelector('[data-stat="avg"]').textContent = fmt(avg);
+    document.querySelector('[data-stat="avg"]').textContent = allScores.length ? fmt(avg) : "—";
   }
 
   function initTheme() {
