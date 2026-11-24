@@ -621,9 +621,7 @@ body.player-expanded { overflow: hidden; }
 }
 .view-tab:hover { color: var(--text); border-color: var(--accent); }
 .view-tab.is-active { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
-.view-hint {
-  margin: -18px 0 22px; color: var(--accent); font-size: 12px; font-weight: 600;
-}
+.vote-desc { color: var(--accent); }
 body.vote-mode [data-score-stat],
 body.vote-mode #hero-song-score,
 body.vote-mode .meter,
