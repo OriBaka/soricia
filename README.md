@@ -62,6 +62,13 @@ window.SITE_CONFIG = {
 
 Rules chỉ cho phép khách đọc bảng `votes` và ghi số từ 1–10 vào từng lượt chấm; không cho xoá hoặc ghi dữ liệu ngoài phạm vi đó. URL database là thông tin công khai, không phải secret.
 
+## Hai chế độ xem bài hát
+
+Phần Âm nhạc có 2 tab:
+
+- **Bảng xếp hạng**: như trước — hiện điểm trung bình cộng đồng, điểm của tác giả và ô chấm điểm.
+- **Vote nhạc**: ẩn điểm cộng đồng, điểm tác giả, thanh điểm và ô thống kê điểm trung bình. Mỗi bài chỉ hiện ô chấm 1–10; sau khi bạn bấm **Gửi**, bài đó mới lộ điểm trung bình, điểm tác giả và cho phép **Sửa** điểm. Các bài chưa chấm vẫn giấu điểm. Tab này tự sắp theo thứ hạng có sẵn để không lộ điểm qua thứ tự sắp xếp; quay lại **Bảng xếp hạng** sẽ khôi phục kiểu sắp xếp cũ.
+
 ## Nghe nhạc ngay trên web
 
 Mỗi bài có nút **▶ Nghe**: bấm mở trình phát YouTube dạng cửa sổ nhỏ góc màn hình, nhạc chạy ngay mà **vẫn cuộn trang, gõ điểm và vote được**. Kéo bằng thanh tiêu đề (có ký hiệu ⠿) để đặt cửa sổ nhạc ở bất cứ đâu; vị trí được nhớ lại sau khi tải lại trang. Nút **⤢** phóng to full màn hình, **🗕** thu nhỏ lại về vị trí đã kéo, **✕** đóng; phím Esc thu nhỏ rồi đóng. Link được lưu trong trường `youtube` của từng bài trong `data/data.js` (45/45 bài). Chủ web có thể dán link mới vào ô **Link YouTube** trong form Sửa/Thêm rồi lưu; chấp nhận cả `https://youtu.be/...`, `youtube.com/watch?v=...` hoặc ID 11 ký tự.

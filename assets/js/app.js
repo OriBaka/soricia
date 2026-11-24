@@ -149,9 +149,10 @@
   let anime = loaded.anime;
 
   const state = {
-    songGenre: "Tất cả", songQuery: "", songSort: "score",
+    songView: "rank", songGenre: "Tất cả", songQuery: "", songSort: "score",
     animeGenre: "Tất cả", animeQuery: "", animeSort: "score"
   };
+  let lastRankSort = "score";
   const pendingImages = { song: null, anime: null };
   let lastFocused = null;
 
@@ -255,12 +256,16 @@
     const avg = rating && rating.count ? fmt(rating.avg) : "—";
     const countText = rating && rating.count ? rating.count + " lượt chấm" : "chưa có lượt chấm";
     const existing = myVotes[key];
-    const status = ratingsStatus === "error" ? `<span class="vote-note">Chưa tải được điểm cộng đồng.</span>` : "";
+    const blind = state.songView === "vote" && existing == null;
+    const scoreInfo = blind
+      ? `<span class="vote-note">Chấm điểm để xem điểm cộng đồng và điểm của tác giả.</span>`
+      : `<strong>${avg}</strong>
+         <small>điểm trung bình · ${countText}</small>
+         <div class="author-score">Điểm của tác giả: <b>${fmt(song.score)}</b></div>`;
+    const status = !blind && ratingsStatus === "error" ? `<span class="vote-note">Chưa tải được điểm cộng đồng.</span>` : "";
     return `
       <div class="song-score">
-        <strong>${avg}</strong>
-        <small>điểm trung bình · ${countText}</small>
-        <div class="author-score">Điểm của tác giả: <b>${fmt(song.score)}</b></div>
+        ${scoreInfo}
         <form class="vote-form" data-song="${esc(key)}">
           <label class="sr-only" for="vote-${esc(key)}">Điểm của bạn cho bài ${esc(song.title)}</label>
           <input id="vote-${esc(key)}" type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
@@ -443,6 +448,30 @@
         <button type="button" class="is-danger" data-action="delete" data-type="${type}" data-id="${esc(item.id)}" aria-label="Xoá ${esc(item.title)}">✕ Xoá</button>
       </div>
     `;
+  }
+
+  function setSongView(view) {
+    if (view !== "rank" && view !== "vote") return;
+    state.songView = view;
+    document.body.classList.toggle("vote-mode", view === "vote");
+    document.querySelectorAll("#music-tabs .view-tab").forEach((tab) => {
+      const active = tab.dataset.view === view;
+      tab.classList.toggle("is-active", active);
+      tab.setAttribute("aria-selected", String(active));
+    });
+    $("#music-title").textContent = view === "vote" ? "Chấm điểm bài hát" : "Bài hát xếp hạng theo thể loại";
+    $("#music-view-hint").hidden = view !== "vote";
+    if (view === "vote") {
+      if (state.songSort === "score" || state.songSort === "community") {
+        lastRankSort = state.songSort;
+        state.songSort = "rank";
+      }
+    } else if (lastRankSort) {
+      state.songSort = lastRankSort;
+      lastRankSort = "score";
+    }
+    $("#music-sort").value = state.songSort;
+    renderSongs();
   }
 
   function renderSongs() {
@@ -910,6 +939,9 @@
     const year = new Date().getFullYear();
     $("#hero-year").textContent = year;
     $("#footer-year").textContent = year;
+    document.querySelectorAll("#music-tabs .view-tab").forEach((tab) => {
+      tab.addEventListener("click", () => setSongView(tab.dataset.view));
+    });
     $("#music-search").addEventListener("input", (e) => { state.songQuery = e.target.value; renderSongs(); });
     $("#anime-search").addEventListener("input", (e) => { state.animeQuery = e.target.value; renderAnime(); });
     $("#music-sort").addEventListener("change", (e) => { state.songSort = e.target.value; renderSongs(); });
