@@ -16,6 +16,7 @@
   const VOTER_KEY = "soricia.voter.token";
   const MY_VOTES_KEY = "soricia.my.votes";
   const OWNER_KEY = "soricia.owner.mode";
+  const PLAYER_POS_KEY = "soricia.player.pos";
   const OWNER_MODE = initOwnerMode();
   let ratings = {};
   let ratingsStatus = VOTES_ENABLED ? "loading" : "off";
@@ -307,6 +308,27 @@
     toast.timer = setTimeout(() => el.classList.remove("is-visible"), 2800);
   }
 
+  function loadPlayerPos() {
+    try {
+      const pos = JSON.parse(localStorage.getItem(PLAYER_POS_KEY) || "null");
+      return pos && Number.isFinite(pos.x) && Number.isFinite(pos.y) ? pos : null;
+    } catch (e) { return null; }
+  }
+  let playerPos = loadPlayerPos();
+
+  function applyPlayerPos(x, y) {
+    const box = $("#player-modal .player-box");
+    const maxX = Math.max(8, window.innerWidth - box.offsetWidth - 8);
+    const maxY = Math.max(8, window.innerHeight - box.offsetHeight - 8);
+    const left = Math.min(Math.max(8, x), maxX);
+    const top = Math.min(Math.max(8, y), maxY);
+    box.style.left = left + "px";
+    box.style.top = top + "px";
+    box.style.right = "auto";
+    box.style.bottom = "auto";
+    return { x: left, y: top };
+  }
+
   function setPlayerSize(expanded) {
     const modal = $("#player-modal");
     modal.classList.toggle("is-expanded", expanded);
@@ -315,6 +337,12 @@
     $("#player-expand").textContent = expanded ? "🗕" : "⤢";
     $("#player-expand").setAttribute("aria-label", expanded ? "Thu nhỏ trình phát" : "Phóng to trình phát");
     document.body.classList.toggle("player-expanded", expanded);
+    const box = modal.querySelector(".player-box");
+    if (expanded) {
+      box.style.left = box.style.top = box.style.right = box.style.bottom = "";
+    } else if (playerPos) {
+      applyPlayerPos(playerPos.x, playerPos.y);
+    }
   }
 
   function openPlayer(id, title) {
@@ -322,14 +350,52 @@
     if (!video) return;
     $("#player-frame").innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(video)}?autoplay=1&rel=0" title="Nghe bài hát" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
     $("#player-title").textContent = title || "Đang nghe";
-    setPlayerSize(false);
     $("#player-modal").hidden = false;
+    setPlayerSize(false);
   }
 
   function closePlayer() {
     $("#player-modal").hidden = true;
     $("#player-frame").innerHTML = "";
     document.body.classList.remove("player-expanded");
+  }
+
+  function initPlayerDrag() {
+    const handle = $("#player-modal .player-toolbar");
+    const box = $("#player-modal .player-box");
+    let drag = null;
+    handle.addEventListener("pointerdown", (e) => {
+      if (e.target.closest("button") || $("#player-modal").classList.contains("is-expanded")) return;
+      const rect = box.getBoundingClientRect();
+      drag = { x: e.clientX, y: e.clientY, left: rect.left, top: rect.top, moved: false };
+      box.classList.add("is-dragging");
+      if (handle.setPointerCapture) handle.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+    handle.addEventListener("pointermove", (e) => {
+      if (!drag) return;
+      const dx = e.clientX - drag.x;
+      const dy = e.clientY - drag.y;
+      if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
+      drag.last = applyPlayerPos(drag.left + dx, drag.top + dy);
+    });
+    const finish = () => {
+      if (!drag) return;
+      if (drag.moved && drag.last) {
+        playerPos = drag.last;
+        try { localStorage.setItem(PLAYER_POS_KEY, JSON.stringify(playerPos)); }
+        catch (err) { /* position simply won't persist */ }
+      }
+      drag = null;
+      box.classList.remove("is-dragging");
+    };
+    handle.addEventListener("pointerup", finish);
+    handle.addEventListener("pointercancel", finish);
+    window.addEventListener("resize", () => {
+      if (!$("#player-modal").hidden && playerPos && $("#player-modal").classList.contains("is-mini")) {
+        playerPos = applyPlayerPos(playerPos.x, playerPos.y);
+      }
+    });
   }
 
   function sortItems(items, mode) {
@@ -840,6 +906,7 @@
       document.querySelectorAll(".owner-only").forEach((el) => { el.hidden = true; });
     }
     initManager();
+    initPlayerDrag();
     const year = new Date().getFullYear();
     $("#hero-year").textContent = year;
     $("#footer-year").textContent = year;
