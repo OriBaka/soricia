@@ -24,7 +24,7 @@ Người xem bình thường **chỉ thấy nút chấm điểm**. Để hiện 
 3. Chọn ảnh bìa/poster nếu có — ảnh tự động nén trước khi lưu.
 4. Bấm **Thêm** hoặc **Lưu thay đổi**. Nút **✎ Sửa / ✕ Xoá** luôn hiện trên từng bài/anime — bấm **✎ Sửa** để đổi điểm, ghi chú hoặc thêm ảnh cho mục đã có.
 
-Dữ liệu được lưu trong **trình duyệt của thiết bị đó** (`localStorage`). Để mang sang thiết bị khác hoặc đưa lên GitHub, mở tab **Dữ liệu**:
+Dữ liệu được lưu trong **trình duyệt của thiết bị đó** (`localStorage`). Ảnh bìa có sẵn trong `data/data.js` **không** bị nhét lại vào bộ nhớ trình duyệt (web chỉ lưu một mã tham chiếu), nên không bị lỗi “bộ nhớ đầy” vì 17 ảnh gốc. Ảnh bạn tự tải lên vẫn được lưu và có thể chiếm chỗ — nếu lưu quá nhiều ảnh lớn, hãy tải file JSON về rồi xoá bớt. Để mang sang thiết bị khác hoặc đưa lên GitHub, mở tab **Dữ liệu**:
 
 - **Tải file JSON**: sao lưu / nhập lại ở thiết bị khác.
 - **Tải file data.js**: thay nội dung `data/data.js` trên GitHub, commit/push để mọi người đều thấy danh sách mới.
