@@ -168,7 +168,7 @@
   let anime = loaded.anime;
 
   const state = {
-    songView: "rank", songGenre: "Tất cả", songQuery: "", songSort: "community",
+    songView: "rank", songGenre: "Tất cả", songQuery: "", songSort: "community", songVoteFilter: "all",
     animeGenre: "Tất cả", animeQuery: "", animeSort: "score"
   };
   let lastRankSort = "community";
@@ -441,10 +441,12 @@
     return copy;
   }
 
-  function filterItems(items, genre, query) {
+  function filterItems(items, genre, query, voteFilter) {
     const q = fold(query).trim();
     return items.filter((item) => {
       if (genre !== "Tất cả" && item.genre !== genre) return false;
+      if (voteFilter === "voted" && myVotes[songKey(item)] == null) return false;
+      if (voteFilter === "unvoted" && myVotes[songKey(item)] != null) return false;
       if (!q) return true;
       return fold([item.title, item.artist, item.genre, item.alt, item.note].filter(Boolean).join(" ")).includes(q);
     });
@@ -462,6 +464,41 @@
         container.querySelectorAll(".chip").forEach((c) => c.setAttribute("aria-pressed", "false"));
         chip.setAttribute("aria-pressed", "true");
         onSelect(chip.dataset.genre);
+      });
+    });
+  }
+
+  const VOTE_FILTERS = [
+    { value: "all", label: "Tất cả" },
+    { value: "voted", label: "Đã vote" },
+    { value: "unvoted", label: "Chưa vote" }
+  ];
+
+  function voteFilterCounts() {
+    const voted = songs.filter((song) => myVotes[songKey(song)] != null).length;
+    return { all: songs.length, voted, unvoted: songs.length - voted };
+  }
+
+  function updateVoteFilterChips() {
+    const counts = voteFilterCounts();
+    $("#music-vote-filters").querySelectorAll(".chip").forEach((chip) => {
+      const value = chip.dataset.voteFilter;
+      chip.setAttribute("aria-pressed", String(value === state.songVoteFilter));
+      chip.querySelector(".chip-count").textContent = counts[value];
+    });
+  }
+
+  function renderVoteFilterChips() {
+    const counts = voteFilterCounts();
+    $("#music-vote-filters").innerHTML = VOTE_FILTERS.map(({ value, label }) => `
+      <button type="button" class="chip" data-vote-filter="${value}" aria-pressed="${value === state.songVoteFilter}">
+        ${label}<span class="chip-count">${counts[value]}</span>
+      </button>
+    `).join("");
+    $("#music-vote-filters").querySelectorAll(".chip").forEach((chip) => {
+      chip.addEventListener("click", () => {
+        state.songVoteFilter = chip.dataset.voteFilter;
+        renderSongs();
       });
     });
   }
@@ -501,8 +538,9 @@
   }
 
   function renderSongs() {
-    const items = sortItems(filterItems(songs, state.songGenre, state.songQuery), state.songSort);
+    const items = sortItems(filterItems(songs, state.songGenre, state.songQuery, state.songVoteFilter), state.songSort);
     const rows = items.map((song, i) => ({ song, rank: i + 1 }));
+    updateVoteFilterChips();
     $("#music-list").innerHTML = rows.map(({ song, rank }) => `
       <li class="song${rank === 1 ? " is-top" : ""}">
         <span class="song-rank${song.image ? " has-image" : ""}" aria-label="Hạng ${rank}" title="Hạng ${rank}">
@@ -537,7 +575,11 @@
     empty.hidden = items.length > 0;
     empty.textContent = songs.length === 0
       ? "Chưa có bài hát nào. Bấm “+ Thêm bài hát” để bắt đầu nhé."
-      : "Không tìm thấy bài hát phù hợp. Thử đổi từ khoá hoặc thể loại nhé.";
+      : state.songVoteFilter === "voted" && !Object.keys(myVotes).length
+        ? "Bạn chưa vote bài nào. Chuyển sang “Chưa vote” để bắt đầu nhé."
+        : state.songVoteFilter === "unvoted" && Object.keys(myVotes).length >= songs.length
+          ? "Bạn đã vote hết các bài rồi — cảm ơn bạn!"
+          : "Không tìm thấy bài hát phù hợp. Thử đổi từ khoá hoặc thể loại nhé.";
   }
 
   function renderAnime() {
@@ -619,6 +661,7 @@
     const genres = uniqueGenres([...songs, ...anime]);
     $("#genre-options").innerHTML = genres.map((g) => `<option value="${esc(g)}"></option>`).join("");
     makeChips($("#music-filters"), uniqueGenres(songs), state.songGenre, (g) => { state.songGenre = g; renderSongs(); });
+    renderVoteFilterChips();
     makeChips($("#anime-filters"), uniqueGenres(anime), state.animeGenre, (g) => { state.animeGenre = g; renderAnime(); });
   }
 
