@@ -65,6 +65,11 @@
     const match = text.match(/(?:v=|youtu\.be\/|youtube\.com\/(?:embed\/|shorts\/|live\/|watch\/))([\w-]{11})/i);
     return match ? match[1] : null;
   }
+  const seedYoutube = new Map();
+  (SEED.songs || []).forEach((item) => {
+    const id = youtubeId(item.youtube);
+    if (id) seedYoutube.set(itemKey(item, "song"), id);
+  });
 
   const palettes = [
     ["#6d5dfc", "#1f9c8a"], ["#e0567a", "#7d4bcf"], ["#f0a13c", "#b8465f"],
@@ -115,12 +120,23 @@
           catch (e) { /* ignore corrupt data */ }
         }
         localStorage.setItem(VERSION_KEY, currentVersion);
-        return seedCollection();
+        const fresh = seedCollection();
+        // Persist the new seed now — otherwise the next visit re-reads the stale collection.
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(compactCollection(fresh))); }
+        catch (e) { /* storage may be full; seed still renders this visit */ }
+        return fresh;
       }
       if (raw) {
         const parsed = expandCollection(JSON.parse(raw));
         if (Array.isArray(parsed.songs) || Array.isArray(parsed.anime)) {
-          return { songs: normalize(parsed.songs, "song"), anime: normalize(parsed.anime, "anime") };
+          const songs = normalize(parsed.songs, "song");
+          songs.forEach((song) => {
+            if (!song.youtube) {
+              const id = seedYoutube.get(itemKey(song, "song"));
+              if (id) song.youtube = id;
+            }
+          });
+          return { songs, anime: normalize(parsed.anime, "anime") };
         }
       }
     } catch (e) { /* ignore unavailable or corrupt storage */ }
