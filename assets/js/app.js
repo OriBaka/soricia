@@ -15,6 +15,8 @@
   const VOTES_ENABLED = !!FIREBASE_URL;
   const VOTER_KEY = "soricia.voter.token";
   const MY_VOTES_KEY = "soricia.my.votes";
+  const OWNER_KEY = "soricia.owner.mode";
+  const OWNER_MODE = initOwnerMode();
   let ratings = {};
   let ratingsStatus = VOTES_ENABLED ? "loading" : "off";
   let myVotes = loadMyVotes();
@@ -88,6 +90,20 @@
   };
   const pendingImages = { song: null, anime: null };
   let lastFocused = null;
+
+  function initOwnerMode() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("admin")) {
+      try {
+        if (params.get("admin") === "0") localStorage.removeItem(OWNER_KEY);
+        else localStorage.setItem(OWNER_KEY, "1");
+      } catch (e) { /* ignore */ }
+    }
+    let enabled = false;
+    try { enabled = localStorage.getItem(OWNER_KEY) === "1"; } catch (e) { /* ignore */ }
+    document.body.classList.toggle("owner-mode", enabled);
+    return enabled;
+  }
 
   function songKey(song) {
     return fold(song.title).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "song-" + (song.index || 0);
@@ -250,6 +266,7 @@
   }
 
   function actionsFor(type, item) {
+    if (!OWNER_MODE) return "";
     return `
       <div class="item-actions">
         <button type="button" data-action="edit" data-type="${type}" data-id="${esc(item.id)}" aria-label="Sửa ${esc(item.title)}">✎ Sửa</button>
@@ -453,6 +470,7 @@
   }
 
   function openPanel(tab, id) {
+    if (!OWNER_MODE) return;
     lastFocused = document.activeElement;
     $("#panel-backdrop").hidden = false;
     document.body.classList.add("panel-open");
@@ -670,6 +688,10 @@
 
   function init() {
     initTheme();
+    if (!OWNER_MODE) {
+      $("#manage-btn").hidden = true;
+      document.querySelectorAll("[data-open-editor]").forEach((btn) => { btn.hidden = true; });
+    }
     initManager();
     const year = new Date().getFullYear();
     $("#hero-year").textContent = year;

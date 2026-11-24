@@ -554,3 +554,6 @@ body.panel-open .admin-panel { transform: none; }
   .song-score { width: 100%; }
   .vote-buttons { max-width: 210px; }
 }
+
+/* hidden attribute must win over component display rules */
+[hidden] { display: none !important; }
