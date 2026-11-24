@@ -160,7 +160,7 @@
 
   async function submitVote(songId, score) {
     if (!VOTES_ENABLED) return;
-    if (myVotes[songId]) { toast("Bạn đã chấm bài này rồi."); return; }
+    const changing = myVotes[songId] != null;
     try {
       const res = await fetch(firebaseUrl(VOTES_PATH + "/" + encodeURIComponent(songId) + "/" + encodeURIComponent(voterToken())), {
         method: "PUT",
@@ -170,7 +170,7 @@
       if (!res.ok) throw new Error("HTTP " + res.status);
       myVotes[songId] = score;
       persistMyVotes();
-      toast("Đã ghi điểm của bạn. Cảm ơn!");
+      toast(changing ? "Đã cập nhật điểm của bạn." : "Đã ghi điểm của bạn. Cảm ơn!");
       await loadRatings();
     } catch (e) {
       toast("Không gửi được điểm. Thử lại sau.");
@@ -185,18 +185,20 @@
     const rating = ratings[key];
     const avg = rating && rating.count ? fmt(rating.avg) : "—";
     const countText = rating && rating.count ? rating.count + " lượt chấm" : "chưa có lượt chấm";
-    const buttons = Array.from({ length: 10 }, (_, i) => {
-      const n = i + 1;
-      return `<button type="button" class="vote-btn${myVotes[key] === n ? " is-picked" : ""}" data-action="vote" data-id="${esc(key)}" data-score="${n}" aria-label="Chấm ${n} điểm" title="Chấm ${n} điểm">${n}</button>`;
-    }).join("");
+    const existing = myVotes[key];
     const status = ratingsStatus === "error" ? `<span class="vote-note">Chưa tải được điểm cộng đồng.</span>` : "";
     return `
       <div class="song-score">
         <strong>${avg}</strong>
         <small>điểm trung bình · ${countText}</small>
         <div class="author-score">Điểm của tác giả: <b>${fmt(song.score)}</b></div>
-        <div class="vote-buttons" role="group" aria-label="Chấm điểm bài ${esc(song.title)}">${buttons}</div>
-        ${myVotes[key] ? `<span class="my-vote">Bạn đã chấm: ${myVotes[key]}</span>` : ""}
+        <form class="vote-form" data-song="${esc(key)}">
+          <label class="sr-only" for="vote-${esc(key)}">Điểm của bạn cho bài ${esc(song.title)}</label>
+          <input id="vote-${esc(key)}" type="number" min="1" max="10" step="0.1" inputmode="decimal"
+                 placeholder="Điểm của bạn" value="${existing != null ? esc(existing) : ""}">
+          <button type="submit">${existing != null ? "Sửa" : "Gửi"}</button>
+        </form>
+        ${existing != null ? `<span class="my-vote">Bạn đã chấm: ${esc(existing)} — có thể đổi</span>` : ""}
         ${status}
       </div>
     `;
@@ -571,6 +573,20 @@
       if (button.dataset.action === "delete") deleteItem(button.dataset.type, button.dataset.id);
     });
 
+    document.addEventListener("submit", (e) => {
+      const form = e.target.closest("form.vote-form");
+      if (!form) return;
+      e.preventDefault();
+      const input = form.querySelector("input");
+      const score = Number(input.value);
+      if (!Number.isFinite(score) || score < 1 || score > 10) {
+        toast("Nhập điểm từ 1 đến 10 nhé.");
+        input.focus();
+        return;
+      }
+      submitVote(form.dataset.song, score);
+    });
+
     ["song", "anime"].forEach((type) => {
       $("#" + type + "-form").addEventListener("submit", (e) => { e.preventDefault(); submitForm(type); });
       $("#" + type + "-image").addEventListener("change", async (e) => {
@@ -686,7 +702,10 @@
     elements.forEach((el) => observer.observe(el));
   }
 
+  let initialized = false;
   function init() {
+    if (initialized) return;
+    initialized = true;
     initTheme();
     if (!OWNER_MODE) {
       $("#manage-btn").hidden = true;
