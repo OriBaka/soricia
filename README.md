@@ -5,6 +5,10 @@ Chạy hoàn toàn bằng HTML/CSS/JavaScript tĩnh, không cần cài đặt ha
 
 **Website:** https://oribaka.github.io/soricia/
 
+> Nếu website chưa tải được, cần bật GitHub Pages **một lần duy nhất**:
+> vào `Settings → Pages → Build and deployment → Source → Deploy from a branch`,
+> chọn `main` / `/(root)` rồi bấm `Save`. Sau đó trang tự cập nhật mỗi lần push.
+
 ## Cập nhật danh sách
 
 Sửa [`data/data.js`](data/data.js) — đây là file duy nhất chứa nội dung:
