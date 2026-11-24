@@ -477,10 +477,10 @@
   function rankValue(song) {
     if (state.songSort === "community") {
       const r = ratings[songKey(song)];
-      return r && r.count ? Math.round(r.avg * 10) / 10 : null;
+      return r && r.count ? fmt(r.avg) : null;
     }
     if (state.songSort === "rank") return Number(song.rank) || null;
-    if (state.songSort === "score") return Math.round((Number(song.score) || 0) * 10) / 10;
+    if (state.songSort === "score") return fmt(song.score);
     return null;
   }
 
