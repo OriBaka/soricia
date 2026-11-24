@@ -10,9 +10,9 @@
   const BACKUP_KEY = "soricia.collection.backup.v1";
 
   const CONFIG = window.SITE_CONFIG || {};
-  const SUPABASE_URL = String(CONFIG.supabaseUrl || "").replace(/\/+$/, "");
-  const SUPABASE_KEY = String(CONFIG.supabaseAnonKey || "");
-  const VOTES_ENABLED = !!(SUPABASE_URL && SUPABASE_KEY);
+  const FIREBASE_URL = String(CONFIG.firebaseUrl || "").replace(/\/+$/, "");
+  const VOTES_PATH = String(CONFIG.votesPath || "votes").replace(/^\/+|\/+$/g, "");
+  const VOTES_ENABLED = !!FIREBASE_URL;
   const VOTER_KEY = "soricia.voter.token";
   const MY_VOTES_KEY = "soricia.my.votes";
   let ratings = {};
@@ -112,32 +112,27 @@
     return token;
   }
 
-  function supabaseHeaders(extra) {
-    return Object.assign({
-      apikey: SUPABASE_KEY,
-      Authorization: "Bearer " + SUPABASE_KEY
-    }, extra || {});
+  function firebaseUrl(path) {
+    return FIREBASE_URL + "/" + String(path || "").replace(/^\/+/, "") + ".json";
   }
 
   async function loadRatings() {
     if (!VOTES_ENABLED) return;
     ratingsStatus = "loading";
     try {
-      const res = await fetch(SUPABASE_URL + "/rest/v1/song_votes?select=song_id,score", { headers: supabaseHeaders() });
+      const res = await fetch(firebaseUrl(VOTES_PATH));
       if (!res.ok) throw new Error("HTTP " + res.status);
-      const rows = await res.json();
-      const acc = {};
-      (Array.isArray(rows) ? rows : []).forEach((row) => {
-        const id = String(row.song_id || "");
-        const score = Number(row.score);
-        if (!id || !score) return;
-        if (!acc[id]) acc[id] = { sum: 0, count: 0 };
-        acc[id].sum += score;
-        acc[id].count += 1;
-      });
+      const data = await res.json();
       ratings = {};
-      Object.entries(acc).forEach(([id, value]) => {
-        ratings[id] = { avg: value.sum / value.count, count: value.count };
+      Object.entries(data && typeof data === "object" ? data : {}).forEach(([songId, votes]) => {
+        const scores = Object.values(votes && typeof votes === "object" ? votes : {})
+          .map(Number)
+          .filter((n) => n >= 1 && n <= 10);
+        if (!scores.length) return;
+        ratings[songId] = {
+          avg: scores.reduce((a, b) => a + b, 0) / scores.length,
+          count: scores.length
+        };
       });
       ratingsStatus = "ready";
     } catch (e) {
@@ -151,13 +146,10 @@
     if (!VOTES_ENABLED) return;
     if (myVotes[songId]) { toast("Bạn đã chấm bài này rồi."); return; }
     try {
-      const res = await fetch(SUPABASE_URL + "/rest/v1/song_votes", {
-        method: "POST",
-        headers: supabaseHeaders({
-          "Content-Type": "application/json",
-          Prefer: "resolution=ignore-duplicates"
-        }),
-        body: JSON.stringify({ song_id: songId, score: score, voter_token: voterToken() })
+      const res = await fetch(firebaseUrl(VOTES_PATH + "/" + encodeURIComponent(songId) + "/" + encodeURIComponent(voterToken())), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(score)
       });
       if (!res.ok) throw new Error("HTTP " + res.status);
       myVotes[songId] = score;

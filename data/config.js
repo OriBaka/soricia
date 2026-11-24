@@ -1,12 +1,13 @@
 /**
- * Cấu hình bình chọn (Supabase).
- * Tạo project tại https://supabase.com, chạy supabase/setup.sql trong SQL Editor,
- * rồi điền Project URL và anon/public key vào đây.
+ * Cấu hình bình chọn (Firebase Realtime Database).
  *
- * Anon key là khoá công khai, dùng được trong trình duyệt — không phải service key.
- * Để trống hai giá trị này nếu chưa muốn bật bình chọn.
+ * URL public của database, không phải secret. Để trong Firebase Console:
+ * Build → Realtime Database → tab Data / Rules. Áp dụng firebase/rules.json
+ * vào tab Rules để khách được gửi điểm nhưng không xoá/sửa dữ liệu.
+ *
+ * Để trống firebaseUrl nếu chưa muốn bật bình chọn.
  */
 window.SITE_CONFIG = {
-  supabaseUrl: "",
-  supabaseAnonKey: ""
+  firebaseUrl: "https://soricia-default-rtdb.firebaseio.com",
+  votesPath: "votes"
 };
