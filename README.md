@@ -9,9 +9,17 @@ Chạy hoàn toàn bằng HTML/CSS/JavaScript tĩnh, không cần cài đặt ha
 > vào `Settings → Pages → Build and deployment → Source → Deploy from a branch`,
 > chọn `main` / `/(root)` rồi bấm `Save`.
 
-## Thêm/sửa ngay trên web
+## Thêm/sửa ngay trên web (chế độ chủ web)
 
-1. Vào website, bấm nút **Quản lý** ở góc trên (hoặc **+ Thêm bài hát** / **+ Thêm anime** trong từng mục).
+Người xem bình thường **chỉ thấy nút chấm điểm**. Để hiện nút Quản lý / Thêm / Sửa / Xoá trên trình duyệt của bạn:
+
+- Mở `https://oribaka.github.io/soricia/?admin=1` một lần. Trình duyệt sẽ nhớ chế độ này.
+- Mở link gốc `https://oribaka.github.io/soricia/` sau đó vẫn thấy đủ nút quản lý trên máy bạn.
+- Để tắt trên máy đó: mở `?admin=0`.
+
+Đây là chế độ ẩn giao diện, không phải đăng nhập bảo mật: ai biết tham số cũng bật được, nhưng họ chỉ sửa được dữ liệu trong **trình duyệt của họ**, không đổi được web chung hay repo GitHub.
+
+1. Vào website ở chế độ chủ web, bấm nút **Quản lý** ở góc trên (hoặc **+ Thêm bài hát** / **+ Thêm anime** trong từng mục).
 2. Điền thông tin: tên, nghệ sĩ/tên phụ, thể loại (gõ thể loại mới tuỳ thích), điểm 0–10, năm, số tập, trạng thái và ghi chú.
 3. Chọn ảnh bìa/poster nếu có — ảnh tự động nén trước khi lưu.
 4. Bấm **Thêm** hoặc **Lưu thay đổi**. Nút **✎ Sửa / ✕ Xoá** luôn hiện trên từng bài/anime — bấm **✎ Sửa** để đổi điểm, ghi chú hoặc thêm ảnh cho mục đã có.
