@@ -125,8 +125,8 @@
   function actionsFor(type, item) {
     return `
       <div class="item-actions">
-        <button type="button" data-action="edit" data-type="${type}" data-id="${esc(item.id)}" aria-label="Sửa ${esc(item.title)}">Sửa</button>
-        <button type="button" class="is-danger" data-action="delete" data-type="${type}" data-id="${esc(item.id)}" aria-label="Xoá ${esc(item.title)}">Xoá</button>
+        <button type="button" data-action="edit" data-type="${type}" data-id="${esc(item.id)}" aria-label="Sửa ${esc(item.title)}">✎ Sửa</button>
+        <button type="button" class="is-danger" data-action="delete" data-type="${type}" data-id="${esc(item.id)}" aria-label="Xoá ${esc(item.title)}">✕ Xoá</button>
       </div>
     `;
   }
