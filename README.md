@@ -27,7 +27,7 @@ Người xem bình thường **chỉ thấy nút chấm điểm**. Để hiện 
 Dữ liệu được lưu trong **trình duyệt của thiết bị đó** (`localStorage`). Ảnh bìa có sẵn trong `data/data.js` **không** bị nhét lại vào bộ nhớ trình duyệt (web chỉ lưu một mã tham chiếu), nên không bị lỗi “bộ nhớ đầy” vì 17 ảnh gốc. Ảnh bạn tự tải lên vẫn được lưu và có thể chiếm chỗ — nếu lưu quá nhiều ảnh lớn, hãy tải file JSON về rồi xoá bớt. Để mang sang thiết bị khác hoặc đưa lên GitHub, mở tab **Dữ liệu**:
 
 - **Tải file JSON**: sao lưu / nhập lại ở thiết bị khác.
-- **Tải file data.js**: thay nội dung `data/data.js` trên GitHub, commit/push để mọi người đều thấy danh sách mới.
+- **Tải file data.js**: thay nội dung `data/data.js` trên GitHub, commit/push để mọi người đều thấy danh sách mới. File xuất ra tự gắn mốc `version` mới, nên người xem cũ sẽ tự lấy bản mới thay vì dùng dữ liệu đã lưu trong trình duyệt.
 - **Khôi phục dữ liệu gốc**: quay lại nội dung hiện trong `data/data.js`.
 
 Sau khi push lên `main`, GitHub Pages tự build lại trong vài phút. Nếu vẫn thấy bản cũ, mở `https://oribaka.github.io/soricia/?new=1` hoặc ép tải lại (`Ctrl+Shift+R` / `Cmd+Shift+R`).
