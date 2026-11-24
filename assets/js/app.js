@@ -307,18 +307,29 @@
     toast.timer = setTimeout(() => el.classList.remove("is-visible"), 2800);
   }
 
-  function openPlayer(id) {
+  function setPlayerSize(expanded) {
+    const modal = $("#player-modal");
+    modal.classList.toggle("is-expanded", expanded);
+    modal.classList.toggle("is-mini", !expanded);
+    modal.querySelector(".player-backdrop").hidden = !expanded;
+    $("#player-expand").textContent = expanded ? "🗕" : "⤢";
+    $("#player-expand").setAttribute("aria-label", expanded ? "Thu nhỏ trình phát" : "Phóng to trình phát");
+    document.body.classList.toggle("player-expanded", expanded);
+  }
+
+  function openPlayer(id, title) {
     const video = youtubeId(id);
     if (!video) return;
     $("#player-frame").innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(video)}?autoplay=1&rel=0" title="Nghe bài hát" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+    $("#player-title").textContent = title || "Đang nghe";
+    setPlayerSize(false);
     $("#player-modal").hidden = false;
-    document.body.classList.add("player-open");
   }
 
   function closePlayer() {
     $("#player-modal").hidden = true;
     $("#player-frame").innerHTML = "";
-    document.body.classList.remove("player-open");
+    document.body.classList.remove("player-expanded");
   }
 
   function sortItems(items, mode) {
@@ -391,7 +402,7 @@
           ${actionsFor("song", song)}
           <div class="listen-row">
             ${song.youtube
-              ? `<button type="button" class="listen-btn" data-play="${esc(song.youtube)}" aria-label="Nghe ${esc(song.title)}">▶ Nghe</button>
+              ? `<button type="button" class="listen-btn" data-play="${esc(song.youtube)}" data-title="${esc(song.title)}" aria-label="Nghe ${esc(song.title)}">▶ Nghe</button>
                  <a class="listen-link" href="https://www.youtube.com/watch?v=${esc(song.youtube)}" target="_blank" rel="noopener noreferrer">Mở YouTube ↗</a>`
               : `<a class="listen-btn" href="https://www.youtube.com/results?search_query=${encodeURIComponent(song.title + " " + (song.artist || ""))}" target="_blank" rel="noopener noreferrer">🔎 Tìm bài trên YouTube</a>`}
           </div>
@@ -656,8 +667,10 @@
     $("#panel-backdrop").addEventListener("click", closePanel);
     document.addEventListener("keydown", (e) => {
       if (e.key !== "Escape") return;
-      if (!$("#player-modal").hidden) closePlayer();
-      else if (document.body.classList.contains("panel-open")) closePanel();
+      if (!$("#player-modal").hidden) {
+        if ($("#player-modal").classList.contains("is-expanded")) setPlayerSize(false);
+        else closePlayer();
+      } else if (document.body.classList.contains("panel-open")) closePanel();
     });
     document.querySelectorAll(".panel-tab").forEach((btn) => {
       btn.addEventListener("click", () => setTab(btn.dataset.tab));
@@ -665,8 +678,12 @@
 
     document.addEventListener("click", (e) => {
       if (e.target.closest("[data-close-player]")) { closePlayer(); return; }
+      if (e.target.closest("[data-toggle-player]")) {
+        setPlayerSize(!$("#player-modal").classList.contains("is-expanded"));
+        return;
+      }
       const play = e.target.closest("[data-play]");
-      if (play) { openPlayer(play.dataset.play); return; }
+      if (play) { openPlayer(play.dataset.play, play.dataset.title); return; }
       const opener = e.target.closest("[data-open-editor]");
       if (opener) { openPanel(opener.dataset.openEditor); return; }
       const button = e.target.closest("button[data-action]");
