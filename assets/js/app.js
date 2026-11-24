@@ -149,10 +149,10 @@
   let anime = loaded.anime;
 
   const state = {
-    songView: "rank", songGenre: "Tất cả", songQuery: "", songSort: "score",
+    songView: "rank", songGenre: "Tất cả", songQuery: "", songSort: "community",
     animeGenre: "Tất cả", animeQuery: "", animeSort: "score"
   };
-  let lastRankSort = "score";
+  let lastRankSort = "community";
   const pendingImages = { song: null, anime: null };
   let lastFocused = null;
 
@@ -468,20 +468,42 @@
       }
     } else if (lastRankSort) {
       state.songSort = lastRankSort;
-      lastRankSort = "score";
+      lastRankSort = "community";
     }
     $("#music-sort").value = state.songSort;
     renderSongs();
   }
 
+  function rankValue(song) {
+    if (state.songSort === "community") {
+      const r = ratings[songKey(song)];
+      return r && r.count ? Math.round(r.avg * 10) / 10 : null;
+    }
+    if (state.songSort === "rank") return Number(song.rank) || null;
+    if (state.songSort === "score") return Math.round((Number(song.score) || 0) * 10) / 10;
+    return null;
+  }
+
   function renderSongs() {
     const items = sortItems(filterItems(songs, state.songGenre, state.songQuery), state.songSort);
-    const topScore = songs.length ? Math.max(...songs.map((s) => s.score || 0)) : 0;
-    $("#music-list").innerHTML = items.map((song, i) => `
-      <li class="song${(song.score || 0) >= topScore - 0.05 ? " is-top" : ""}">
-        <span class="song-rank${song.image ? " has-image" : ""}" aria-label="Vị trí ${i + 1}">
+    let currentRank = 0;
+    let previousValue = null;
+    const rows = items.map((song, i) => {
+      const value = rankValue(song);
+      if (value == null) {
+        currentRank = i + 1;
+        previousValue = null;
+      } else if (i === 0 || value !== previousValue) {
+        currentRank = i + 1;
+        previousValue = value;
+      }
+      return { song, rank: currentRank };
+    });
+    $("#music-list").innerHTML = rows.map(({ song, rank }) => `
+      <li class="song${rank === 1 ? " is-top" : ""}">
+        <span class="song-rank${song.image ? " has-image" : ""}" aria-label="Hạng ${rank}" title="Hạng ${rank}">
           ${song.image ? `<img src="${esc(song.image)}" alt="">` : ""}
-          <b>${String(i + 1).padStart(2, "0")}</b>
+          <b>#${String(rank).padStart(2, "0")}</b>
         </span>
         <div class="song-main">
           <div class="song-title-line">
