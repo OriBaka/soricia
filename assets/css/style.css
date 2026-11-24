@@ -607,7 +607,12 @@ body.player-expanded { overflow: hidden; }
 .player-toolbar {
   display: flex; align-items: center; gap: 6px; padding: 6px 8px;
   border-bottom: 1px solid var(--border); background: var(--surface-2);
+  cursor: grab; touch-action: none; user-select: none;
 }
+.player-drag-grip { flex: 0 0 auto; color: var(--faint); font-size: 13px; line-height: 1; }
+.player-box.is-dragging { cursor: grabbing; opacity: .92; }
+.player-box.is-dragging .player-toolbar { cursor: grabbing; }
+.player-box.is-dragging iframe { pointer-events: none; }
 .player-title {
   flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
   font-size: 12px; font-weight: 700; color: var(--text);

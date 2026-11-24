@@ -6,14 +6,14 @@
   <meta name="description" content="Bảng xếp hạng âm nhạc và nhật ký anime cá nhân của Soricia.">
   <meta name="theme-color" content="#0b0c12">
   <title>Soricia — Nhạc & Anime của tôi</title>
-  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=19">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=20">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=19">
-  <script src="data/data.js?v=19"></script>
-  <script src="data/config.js?v=19"></script>
-  <script src="assets/js/app.js?v=19" defer></script>
+  <link rel="stylesheet" href="assets/css/style.css?v=20">
+  <script src="data/data.js?v=20"></script>
+  <script src="data/config.js?v=20"></script>
+  <script src="assets/js/app.js?v=20" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Chuyển đến nội dung</a>
@@ -240,7 +240,8 @@
   <div class="player-modal is-mini" id="player-modal" hidden role="dialog" aria-label="Trình phát nhạc">
     <div class="player-backdrop" data-close-player hidden></div>
     <div class="player-box">
-      <div class="player-toolbar">
+      <div class="player-toolbar" title="Kéo để di chuyển cửa sổ nhạc">
+        <span class="player-drag-grip" aria-hidden="true">⠿</span>
         <span class="player-title" id="player-title">Đang nghe</span>
         <button type="button" class="player-expand" id="player-expand" data-toggle-player aria-label="Phóng to trình phát">⤢</button>
         <button type="button" class="player-close" data-close-player aria-label="Đóng trình phát">✕</button>
