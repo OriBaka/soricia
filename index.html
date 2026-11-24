@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="vi" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Bảng xếp hạng âm nhạc và nhật ký anime cá nhân của Soricia.">
+  <meta name="theme-color" content="#0b0c12">
+  <title>Soricia — Nhạc & Anime của tôi</title>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="data/data.js"></script>
+  <script src="assets/js/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Chuyển đến nội dung</a>
+  <div class="ambient" aria-hidden="true"><span></span><span></span><span></span></div>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="#top" aria-label="Soricia — về đầu trang">
+        <span class="brand-mark" aria-hidden="true">S</span>
+        <span class="brand-name">SORICIA<span class="brand-dot">.</span></span>
+      </a>
+      <nav class="main-nav" aria-label="Điều hướng chính">
+        <a href="#overview">Tổng quan</a>
+        <a href="#music">Âm nhạc</a>
+        <a href="#anime">Anime</a>
+        <a href="#customize">Cá nhân hoá</a>
+      </nav>
+      <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Đổi giao diện sáng/tối" title="Đổi giao diện">
+        <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.4 14.5A8.6 8.6 0 0 1 9.5 3.6 8.6 8.6 0 1 0 20.4 14.5Z"/></svg>
+        <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.4M12 19.6V22M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M2 12h2.4M19.6 12H22M4.9 19.1l1.7-1.7M17.4 6.6l1.7-1.7"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top">
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow"><span class="pulse" aria-hidden="true"></span> Nhật ký nghe &amp; xem · <span id="hero-year">2026</span></p>
+          <h1>Những bản nhạc<br>và thế giới <em>tôi ở lại.</em></h1>
+          <p class="hero-lead">Nơi tôi lưu lại các bài hát nghe đi nghe lại, cùng những bộ anime còn dư âm sau khi kết thúc. Xếp hạng theo cảm nhân riêng — không theo bất cứ bảng nào khác.</p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#music">Khám phá âm nhạc <span aria-hidden="true">↗</span></a>
+            <a class="btn btn-ghost" href="#anime">Xem danh sách anime</a>
+          </div>
+          <p class="hero-hint">Gõ tên bài hát hoặc tựa anime để tìm ngay trong trang.</p>
+        </div>
+        <div class="hero-showcase" aria-label="Một số mục yêu thích">
+          <article class="showcase-card showcase-music">
+            <div class="showcase-top"><span class="tag">BÀI HÁT SỐ 1</span><span class="score-pill" id="hero-song-score">—</span></div>
+            <div class="showcase-body"><span class="showcase-index">01</span><div><h2 id="hero-song-title">Đang tải…</h2><p id="hero-song-artist"></p></div></div>
+            <div class="showcase-foot"><span id="hero-song-genre"></span><span>◉ Nghe nhiều nhất</span></div>
+          </article>
+          <article class="showcase-card showcase-anime">
+            <div class="showcase-top"><span class="tag">ANIME YÊU THÍCH</span><span class="score-pill" id="hero-anime-score">—</span></div>
+            <div class="showcase-body"><span class="showcase-index">01</span><div><h2 id="hero-anime-title">Đang tải…</h2><p id="hero-anime-meta"></p></div></div>
+            <div class="showcase-foot"><span id="hero-anime-genre"></span><span>✦ Đã xem</span></div>
+          </article>
+          <div class="showcase-sticker" aria-hidden="true">rated<br>by me<span>✳</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="stats-section" id="overview" aria-label="Tổng quan bộ sưu tập">
+      <div class="container stats-grid">
+        <div class="stat"><strong data-stat="songs">0</strong><span>Bài hát trong bảng xếp hạng</span></div>
+        <div class="stat"><strong data-stat="genres">0</strong><span>Thể loại âm nhạc</span></div>
+        <div class="stat"><strong data-stat="anime">0</strong><span>Bộ anime đã ghi nhận</span></div>
+        <div class="stat"><strong data-stat="avg">0</strong><span>Điểm trung bình / 10</span></div>
+      </div>
+    </section>
+
+    <section class="section" id="music">
+      <div class="container">
+        <div class="section-head reveal">
+          <div>
+            <p class="section-kicker">01 / Âm nhạc</p>
+            <h2>Bài hát xếp hạng theo thể loại</h2>
+            <p class="section-desc">Mỗi bài có một vị trí riêng. Lọc theo thể loại để xem bảng xếp hạng của riêng từng dòng nhạc.</p>
+          </div>
+          <p class="section-count"><span id="music-count">0</span> bài hát</p>
+        </div>
+
+        <div class="toolbar reveal">
+          <div class="chips" id="music-filters" role="group" aria-label="Lọc bài hát theo thể loại"></div>
+          <div class="toolbar-right">
+            <label class="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/></svg><span class="sr-only">Tìm bài hát</span><input type="search" id="music-search" placeholder="Tìm bài hát hoặc nghệ sĩ…" autocomplete="off"></label>
+            <label class="select-wrap"><span class="sr-only">Sắp xếp bài hát</span><select id="music-sort"><option value="score">Điểm cao nhất</option><option value="rank">Thứ hạng có sẵn</option><option value="title">Tên A–Z</option><option value="year">Năm mới nhất</option></select></label>
+          </div>
+        </div>
+        <ol class="song-list" id="music-list" aria-live="polite"></ol>
+        <p class="empty-state" id="music-empty" hidden>Không tìm thấy bài hát phù hợp. Thử đổi từ khoá hoặc thể loại nhé.</p>
+      </div>
+    </section>
+
+    <section class="section section-anime" id="anime">
+      <div class="container">
+        <div class="section-head reveal">
+          <div>
+            <p class="section-kicker">02 / Anime</p>
+            <h2>Những bộ tôi đã xem</h2>
+            <p class="section-desc">Điểm đánh giá, trạng thái và vài dòng cảm nghĩ — như một cuốn sổ xem phim cá nhân.</p>
+          </div>
+          <p class="section-count"><span id="anime-count">0</span> tựa anime</p>
+        </div>
+
+        <div class="toolbar reveal">
+          <div class="chips" id="anime-filters" role="group" aria-label="Lọc anime theo thể loại"></div>
+          <div class="toolbar-right">
+            <label class="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/></svg><span class="sr-only">Tìm anime</span><input type="search" id="anime-search" placeholder="Tìm tên anime…" autocomplete="off"></label>
+            <label class="select-wrap"><span class="sr-only">Sắp xếp anime</span><select id="anime-sort"><option value="score">Điểm cao nhất</option><option value="rank">Thứ hạng có sẵn</option><option value="title">Tên A–Z</option><option value="year">Năm mới nhất</option></select></label>
+          </div>
+        </div>
+        <div class="anime-grid" id="anime-list" aria-live="polite"></div>
+        <p class="empty-state" id="anime-empty" hidden>Chưa có anime nào khớp với bộ lọc này.</p>
+      </div>
+    </section>
+
+    <section class="section section-customize" id="customize">
+      <div class="container customize-grid reveal">
+        <div>
+          <p class="section-kicker">03 / Cá nhân hoá</p>
+          <h2>Muốn đổi danh sách?<br><em>Sửa một file duy nhất.</em></h2>
+          <p class="section-desc">Toàn bộ bài hát và anime nằm trong <code>data/data.js</code>. Thêm, xoá hoặc đổi điểm rồi đẩy lên GitHub là trang tự cập nhật — không cần cài đặt gì thêm.</p>
+        </div>
+        <div class="code-card">
+          <div class="code-head"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span>data/data.js</span></div>
+<pre><code>window.SITE_DATA = {
+  profile: { name: "Soricia" },
+  songs: [
+    { title: "…", artist: "…", genre: "Pop",
+      score: 9.5, year: 2024, note: "…" }
+  ],
+  anime: [
+    { title: "…", genre: "Slice of Life",
+      score: 9, status: "Đã xem", note: "…" }
+  ]
+};</code></pre>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div><span class="brand-name">SORICIA<span class="brand-dot">.</span></span><p>Điểm số của riêng tôi, dành cho những thứ tôi nghe và xem.</p></div>
+      <div class="footer-links"><a href="#top">Lên đầu trang ↑</a><a href="https://github.com/OriBaka/soricia" target="_blank" rel="noopener noreferrer">GitHub repo ↗</a></div>
+    </div>
+    <div class="container footer-bottom"><span>© <span id="footer-year">2026</span> Soricia</span><span>Làm bằng HTML, CSS &amp; một chút JavaScript.</span></div>
+  </footer>
+</body>
+</html>
