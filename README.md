@@ -64,7 +64,7 @@ Rules chỉ cho phép khách đọc bảng `votes` và ghi số từ 1–10 vào
 
 ## Nghe nhạc ngay trên web
 
-Mỗi bài có nút **▶ Nghe**: bấm mở trình phát YouTube ngay trong trang (không rời khỏi web). Link được lưu trong trường `youtube` của từng bài trong `data/data.js` (44/45 bài đã tự tìm và kiểm tra còn hoạt động). Bài chưa có link hiện nút **🔎 Tìm bài trên YouTube**. Chủ web có thể dán link mới vào ô **Link YouTube** trong form Sửa/Thêm rồi lưu; chấp nhận cả `https://youtu.be/...`, `youtube.com/watch?v=...` hoặc ID 11 ký tự.
+Mỗi bài có nút **▶ Nghe**: bấm mở trình phát YouTube dạng cửa sổ nhỏ góc màn hình, nhạc chạy ngay mà **vẫn cuộn trang, gõ điểm và vote được**. Nút **⤢** phóng to full màn hình, **🗕** thu nhỏ lại, **✕** đóng; phím Esc thu nhỏ rồi đóng. Link được lưu trong trường `youtube` của từng bài trong `data/data.js` (45/45 bài). Chủ web có thể dán link mới vào ô **Link YouTube** trong form Sửa/Thêm rồi lưu; chấp nhận cả `https://youtu.be/...`, `youtube.com/watch?v=...` hoặc ID 11 ký tự.
 
 YouTube có thể chặn nhúng ở một số video/quốc gia; nút **Mở YouTube ↗** luôn có sẵn làm phương án dự phòng. Web chỉ nhúng video, không tải hoặc lưu file nhạc có bản quyền.
 
