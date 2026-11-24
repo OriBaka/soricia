@@ -17,11 +17,30 @@
   const MY_VOTES_KEY = "soricia.my.votes";
   const OWNER_KEY = "soricia.owner.mode";
   const PLAYER_POS_KEY = "soricia.player.pos";
+  const TIE_KEY = "soricia.rank.ties";
   const OWNER_MODE = initOwnerMode();
   let ratings = {};
   let ratingsStatus = VOTES_ENABLED ? "loading" : "off";
   let myVotes = loadMyVotes();
+  let rankTies = loadRankTies();
   const voteDrafts = {};
+
+  function loadRankTies() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(TIE_KEY) || "{}") || {};
+      return Object.fromEntries(Object.entries(raw).filter(([, v]) => Number.isFinite(v)));
+    } catch (e) { return {}; }
+  }
+
+  // Bài cùng điểm được xếp theo một thứ tự ngẫu nhiên, lưu lại để không đổi liên tục.
+  function tieFor(song) {
+    const key = songKey(song);
+    if (!Number.isFinite(rankTies[key])) {
+      rankTies[key] = Math.random();
+      try { localStorage.setItem(TIE_KEY, JSON.stringify(rankTies)); } catch (e) { /* chấp nhận ngẫu nhiên trong phiên này */ }
+    }
+    return rankTies[key];
+  }
 
   const $ = (selector) => document.querySelector(selector);
   const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -403,16 +422,23 @@
     });
   }
 
+  function displayScore(song, mode) {
+    if (mode === "community") {
+      const r = ratings[songKey(song)];
+      return r && r.count ? Number(fmt(r.avg)) : -1;
+    }
+    return Number(fmt(song.score)) || 0;
+  }
+
   function sortItems(items, mode) {
     const copy = [...items];
     if (mode === "rank") return copy.sort((a, b) => a.rank - b.rank);
-    if (mode === "community") {
-      const avg = (song) => ratings[songKey(song)] ? ratings[songKey(song)].avg : -1;
-      return copy.sort((a, b) => avg(b) - avg(a) || a.index - b.index);
-    }
     if (mode === "title") return copy.sort((a, b) => String(a.title).localeCompare(String(b.title), "vi"));
     if (mode === "year") return copy.sort((a, b) => (b.year || 0) - (a.year || 0));
-    return copy.sort((a, b) => (b.score || 0) - (a.score || 0) || a.index - b.index);
+    if (mode === "community" || mode === "score") {
+      return copy.sort((a, b) => displayScore(b, mode) - displayScore(a, mode) || tieFor(a) - tieFor(b));
+    }
+    return copy;
   }
 
   function filterItems(items, genre, query) {
@@ -474,31 +500,9 @@
     renderSongs();
   }
 
-  function rankValue(song) {
-    if (state.songSort === "community") {
-      const r = ratings[songKey(song)];
-      return r && r.count ? fmt(r.avg) : null;
-    }
-    if (state.songSort === "rank") return Number(song.rank) || null;
-    if (state.songSort === "score") return fmt(song.score);
-    return null;
-  }
-
   function renderSongs() {
     const items = sortItems(filterItems(songs, state.songGenre, state.songQuery), state.songSort);
-    let currentRank = 0;
-    let previousValue = null;
-    const rows = items.map((song, i) => {
-      const value = rankValue(song);
-      if (value == null) {
-        currentRank = i + 1;
-        previousValue = null;
-      } else if (i === 0 || value !== previousValue) {
-        currentRank = i + 1;
-        previousValue = value;
-      }
-      return { song, rank: currentRank };
-    });
+    const rows = items.map((song, i) => ({ song, rank: i + 1 }));
     $("#music-list").innerHTML = rows.map(({ song, rank }) => `
       <li class="song${rank === 1 ? " is-top" : ""}">
         <span class="song-rank${song.image ? " has-image" : ""}" aria-label="Hạng ${rank}" title="Hạng ${rank}">
