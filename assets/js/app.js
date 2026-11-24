@@ -3,7 +3,11 @@
   "use strict";
 
   const SEED = JSON.parse(JSON.stringify(window.SITE_DATA || { profile: {}, songs: [], anime: [] }));
+  const SEED_VERSION = SEED.version || "seed";
+  let currentVersion = SEED_VERSION;
   const STORAGE_KEY = "soricia.collection.v1";
+  const VERSION_KEY = "soricia.collection.version";
+  const BACKUP_KEY = "soricia.collection.backup.v1";
 
   const $ = (selector) => document.querySelector(selector);
   const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -40,9 +44,20 @@
     });
   }
 
+  function seedCollection() {
+    return { songs: normalize(SEED.songs, "song"), anime: normalize(SEED.anime, "anime") };
+  }
+
   function loadCollection() {
     try {
+      const storedVersion = localStorage.getItem(VERSION_KEY);
       const raw = localStorage.getItem(STORAGE_KEY);
+      if (storedVersion !== currentVersion) {
+        // A newer data.js arrived (e.g. synced from Google Drive): the repo wins.
+        if (raw) localStorage.setItem(BACKUP_KEY, raw);
+        localStorage.setItem(VERSION_KEY, currentVersion);
+        return seedCollection();
+      }
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed.songs) || Array.isArray(parsed.anime)) {
@@ -50,7 +65,7 @@
         }
       }
     } catch (e) { /* ignore unavailable or corrupt storage */ }
-    return { songs: normalize(SEED.songs, "song"), anime: normalize(SEED.anime, "anime") };
+    return seedCollection();
   }
 
   const loaded = loadCollection();
@@ -74,6 +89,7 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         songs: songs.map(toPublic), anime: anime.map(toPublic)
       }));
+      localStorage.setItem(VERSION_KEY, currentVersion);
       return true;
     } catch (e) {
       toast("Không lưu được: bộ nhớ trình duyệt đầy. Hãy xuất JSON rồi xoá bớt ảnh.");
@@ -442,6 +458,7 @@
 
     $("#export-json").addEventListener("click", () => {
       const payload = {
+        version: currentVersion,
         profile: SEED.profile || {},
         songs: songs.map(toPublic),
         anime: anime.map(toPublic)
@@ -452,6 +469,7 @@
 
     $("#export-js").addEventListener("click", () => {
       const payload = {
+        version: currentVersion,
         profile: SEED.profile || {},
         songs: songs.map(toPublic),
         anime: anime.map(toPublic)
@@ -468,6 +486,7 @@
       reader.onload = () => {
         try {
           const parsed = JSON.parse(reader.result);
+          currentVersion = parsed.version || new Date().toISOString();
           songs = normalize(parsed.songs, "song");
           anime = normalize(parsed.anime, "anime");
           save(); renderAll();
@@ -480,8 +499,27 @@
       reader.readAsText(file);
     });
 
+    $("#restore-backup").addEventListener("click", () => {
+      let backup = null;
+      try { backup = localStorage.getItem(BACKUP_KEY); } catch (e) { /* ignore */ }
+      if (!backup || !window.confirm("Khôi phục bản đã lưu trước đó trong trình duyệt?")) {
+        if (!backup) toast("Không có bản sao lưu trong trình duyệt này.");
+        return;
+      }
+      try {
+        const parsed = JSON.parse(backup);
+        songs = normalize(parsed.songs, "song");
+        anime = normalize(parsed.anime, "anime");
+        save(); renderAll();
+        toast("Đã khôi phục bản sao lưu.");
+      } catch (e) {
+        toast("Bản sao lưu không hợp lệ.");
+      }
+    });
+
     $("#reset-data").addEventListener("click", () => {
       if (!window.confirm("Khôi phục dữ liệu gốc từ data.js? Mọi thay đổi trong trình duyệt sẽ mất.")) return;
+      currentVersion = SEED_VERSION;
       songs = normalize(SEED.songs, "song");
       anime = normalize(SEED.anime, "anime");
       save(); renderAll();
