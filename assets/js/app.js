@@ -523,7 +523,8 @@
       tab.setAttribute("aria-selected", String(active));
     });
     $("#music-title").textContent = view === "vote" ? "Chấm điểm bài hát" : "Bài hát xếp hạng theo thể loại";
-    $("#music-view-hint").hidden = view !== "vote";
+    $("#music-desc-rank").hidden = view === "vote";
+    $("#music-desc-vote").hidden = view !== "vote";
     if (view === "vote") {
       if (state.songSort === "score" || state.songSort === "community") {
         lastRankSort = state.songSort;
