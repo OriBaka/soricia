@@ -42,7 +42,7 @@ Bạn có thể để file `data.js` trên Google Drive và nhắn mình cập n
 
 ## Bình chọn của người xem (Firebase Realtime Database)
 
-Khách gõ điểm 1–10 (có thể lẻ như 8.5) vào ô của từng bài và bấm **Gửi**. Web hiển thị **điểm trung bình cộng đồng** ở trên và **điểm của tác giả** bên dưới. Mỗi trình duyệt có một mã ngẫu nhiên nên chỉ một phiếu cho mỗi bài, nhưng **có thể gửi lại để sửa điểm** bất kỳ lúc nào — nút sẽ đổi thành **Sửa**.
+Khách bấm vào ô chấm điểm (ô text lớn, hiện bàn phím số trên điện thoại), gõ điểm 1–10 (có thể lẻ như `8.5` hoặc `8,5`) rồi bấm **Gửi**. Web hiển thị **điểm trung bình cộng đồng** ở trên và **điểm của tác giả** bên dưới. Mỗi trình duyệt có một mã ngẫu nhiên nên chỉ một phiếu cho mỗi bài, nhưng **có thể gửi lại để sửa điểm** bất kỳ lúc nào — nút sẽ đổi thành **Sửa**.
 
 Cài đặt một lần:
 

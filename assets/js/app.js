@@ -20,6 +20,7 @@
   let ratings = {};
   let ratingsStatus = VOTES_ENABLED ? "loading" : "off";
   let myVotes = loadMyVotes();
+  const voteDrafts = {};
 
   const $ = (selector) => document.querySelector(selector);
   const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -139,18 +140,21 @@
       const res = await fetch(firebaseUrl(VOTES_PATH));
       if (!res.ok) throw new Error("HTTP " + res.status);
       const data = await res.json();
-      ratings = {};
+      const next = {};
       Object.entries(data && typeof data === "object" ? data : {}).forEach(([songId, votes]) => {
         const scores = Object.values(votes && typeof votes === "object" ? votes : {})
           .map(Number)
           .filter((n) => n >= 1 && n <= 10);
         if (!scores.length) return;
-        ratings[songId] = {
+        next[songId] = {
           avg: scores.reduce((a, b) => a + b, 0) / scores.length,
           count: scores.length
         };
       });
+      const unchanged = ratingsStatus !== "error" && JSON.stringify(next) === JSON.stringify(ratings);
+      ratings = next;
       ratingsStatus = "ready";
+      if (unchanged) return; // don't wipe what a visitor is typing
     } catch (e) {
       ratingsStatus = "error";
       console.warn("Không tải được điểm bình chọn:", e);
@@ -170,8 +174,10 @@
       if (!res.ok) throw new Error("HTTP " + res.status);
       myVotes[songId] = score;
       persistMyVotes();
+      delete voteDrafts[songId];
       toast(changing ? "Đã cập nhật điểm của bạn." : "Đã ghi điểm của bạn. Cảm ơn!");
       await loadRatings();
+      renderSongs();
     } catch (e) {
       toast("Không gửi được điểm. Thử lại sau.");
     }
@@ -194,8 +200,8 @@
         <div class="author-score">Điểm của tác giả: <b>${fmt(song.score)}</b></div>
         <form class="vote-form" data-song="${esc(key)}">
           <label class="sr-only" for="vote-${esc(key)}">Điểm của bạn cho bài ${esc(song.title)}</label>
-          <input id="vote-${esc(key)}" type="number" min="1" max="10" step="0.1" inputmode="decimal"
-                 placeholder="Điểm của bạn" value="${existing != null ? esc(existing) : ""}">
+          <input id="vote-${esc(key)}" type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
+                 placeholder="1–10" value="${esc(voteDrafts[key] ?? (existing != null ? existing : ""))}">
           <button type="submit">${existing != null ? "Sửa" : "Gửi"}</button>
         </form>
         ${existing != null ? `<span class="my-vote">Bạn đã chấm: ${esc(existing)} — có thể đổi</span>` : ""}
@@ -573,13 +579,20 @@
       if (button.dataset.action === "delete") deleteItem(button.dataset.type, button.dataset.id);
     });
 
+    document.addEventListener("input", (e) => {
+      if (!e.target.matches(".vote-form input")) return;
+      const form = e.target.closest("form.vote-form");
+      voteDrafts[form.dataset.song] = e.target.value;
+    });
+
     document.addEventListener("submit", (e) => {
       const form = e.target.closest("form.vote-form");
       if (!form) return;
       e.preventDefault();
       const input = form.querySelector("input");
-      const score = Number(input.value);
-      if (!Number.isFinite(score) || score < 1 || score > 10) {
+      const raw = String(input.value).trim().replace(",", ".");
+      const score = Number(raw);
+      if (raw === "" || !Number.isFinite(score) || score < 1 || score > 10) {
         toast("Nhập điểm từ 1 đến 10 nhé.");
         input.focus();
         return;
