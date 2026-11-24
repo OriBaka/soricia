@@ -24,6 +24,14 @@ Dữ liệu được lưu trong **trình duyệt của thiết bị đó** (`loc
 
 Sau khi push lên `main`, GitHub Pages tự build lại trong vài phút. Nếu vẫn thấy bản cũ, mở `https://oribaka.github.io/soricia/?new=1` hoặc ép tải lại (`Ctrl+Shift+R` / `Cmd+Shift+R`).
 
+## Đồng bộ từ Google Drive
+
+Bạn có thể để file `data.js` trên Google Drive và nhắn mình cập nhật. Mình đọc file, thay `data/data.js`, commit/merge rồi kiểm tra lại web.
+
+`data.js` nên có trường `version` (mốc thời gian). Khi phiên bản mới lên web, dữ liệu trong repo sẽ thắng dữ liệu đang lưu trong trình duyệt; bản cũ đã lưu được giữ lại và có thể khôi phục bằng nút **Khôi phục bản cũ trong trình duyệt** trong tab **Dữ liệu**. Nếu bạn tự sửa trên web sau đó, bản đó vẫn được giữ cho đến lần `data.js` tiếp theo thay đổi.
+
+Ảnh trong `data.js` có thể là `data:image/...` (đã nén) hoặc URL `https://` công khai; ảnh chỉ nằm riêng trong Drive sẽ không tải được trên web công khai.
+
 ## Cấu trúc dữ liệu trong `data/data.js`
 
 ```js
