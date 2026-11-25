@@ -656,7 +656,7 @@
       tab.classList.toggle("is-active", active);
       tab.setAttribute("aria-selected", String(active));
     });
-    $("#anime-title").textContent = view === "vote" ? "Chấm điểm anime" : "Những bộ tôi đã xem";
+    $("#anime-section-title").textContent = view === "vote" ? "Chấm điểm anime" : "Những bộ tôi đã xem";
     $("#anime-desc-rank").hidden = view === "vote";
     $("#anime-desc-vote").hidden = view !== "vote";
     if (view === "vote") {
@@ -823,7 +823,27 @@
     $("#data-tools").hidden = tab !== "data";
   }
 
+  function clearFormStatus(type) {
+    const box = $("#" + type + "-form-status");
+    if (box) { box.hidden = true; box.textContent = ""; }
+    document.querySelectorAll("#" + type + "-form .is-invalid").forEach((el) => el.classList.remove("is-invalid"));
+  }
+
+  function formError(type, message, fieldId) {
+    const box = $("#" + type + "-form-status");
+    if (box) { box.textContent = message; box.hidden = false; }
+    if (fieldId) {
+      const el = $("#" + fieldId);
+      if (el) {
+        el.classList.add("is-invalid");
+        el.focus();
+        if (el.scrollIntoView) el.scrollIntoView({ block: "center", behavior: "smooth" });
+      }
+    }
+  }
+
   function resetForm(type) {
+    clearFormStatus(type);
     $("#" + type + "-form").reset();
     $("#" + type + "-edit-id").value = "";
     $("#" + type + "-score").value = "8";
@@ -876,7 +896,12 @@
     const list = type === "song" ? songs : anime;
     const title = $("#" + type + "-title").value.trim();
     const genre = $("#" + type + "-genre").value.trim();
-    if (!title || !genre) { toast("Nhớ nhập tên và thể loại nhé."); return; }
+    clearFormStatus(type);
+    if (!title || !genre) {
+      const missing = [!title && (type === "song" ? "Tên bài" : "Tên anime"), !genre && "Thể loại"].filter(Boolean).join(" và ");
+      formError(type, "Nhớ nhập " + missing + " trước khi thêm nhé.", type + "-" + (!title ? "title" : "genre"));
+      return;
+    }
     const editingId = $("#" + type + "-edit-id").value;
     const pos = list.findIndex((x) => x.id === editingId);
     const old = pos >= 0 ? list[pos] : null;
@@ -904,7 +929,10 @@
       item.status = $("#anime-status").value;
     }
     const next = pos >= 0 ? list.map((x, i) => i === pos ? item : x) : [...list, item];
-    if (!save(type === "song" ? { songs: next, anime } : { songs, anime: next })) return;
+    if (!save(type === "song" ? { songs: next, anime } : { songs, anime: next })) {
+      formError(type, "Không lưu được vào trình duyệt. Xoá bớt ảnh đã thêm hoặc tải file JSON dự phòng rồi thử lại.");
+      return;
+    }
     if (type === "song") songs = next;
     else anime = next;
     // Luôn đưa mục vừa thêm về danh sách mặc định, kể cả khi đang lọc/tìm kiếm.
@@ -999,6 +1027,12 @@
 
     ["song", "anime"].forEach((type) => {
       $("#" + type + "-form").addEventListener("submit", (e) => { e.preventDefault(); submitForm(type); });
+      $("#" + type + "-submit").addEventListener("click", (e) => { e.preventDefault(); submitForm(type); });
+      $("#" + type + "-form").addEventListener("input", (e) => {
+        if (e.target.classList.contains("is-invalid")) e.target.classList.remove("is-invalid");
+        const box = $("#" + type + "-form-status");
+        if (box && !box.hidden) box.hidden = true;
+      });
       $("#" + type + "-image").addEventListener("change", async (e) => {
         const file = e.target.files[0];
         if (!file) return;
