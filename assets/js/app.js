@@ -343,9 +343,10 @@
     return rest;
   };
 
-  function save() {
+  function save(collection) {
+    const source = collection || { songs, anime };
     const json = JSON.stringify(compactCollection({
-      songs: songs.map(toPublic), anime: anime.map(toPublic)
+      songs: source.songs.map(toPublic), anime: source.anime.map(toPublic)
     }));
     try {
       localStorage.setItem(STORAGE_KEY, json);
@@ -902,13 +903,21 @@
       item.episodes = numberOrNull("anime-episodes");
       item.status = $("#anime-status").value;
     }
-    if (pos >= 0) list[pos] = item;
-    else list.push(item);
-    if (save()) {
-      renderAll();
-      resetForm(type);
-      toast(pos >= 0 ? "Đã lưu thay đổi." : "Đã thêm vào danh sách.");
-    }
+    const next = pos >= 0 ? list.map((x, i) => i === pos ? item : x) : [...list, item];
+    if (!save(type === "song" ? { songs: next, anime } : { songs, anime: next })) return;
+    if (type === "song") songs = next;
+    else anime = next;
+    // Luôn đưa mục vừa thêm về danh sách mặc định, kể cả khi đang lọc/tìm kiếm.
+    const prefix = type === "song" ? "song" : "anime";
+    state[prefix + "VoteFilter"] = "all";
+    state[prefix + "Query"] = "";
+    state[prefix + "Genre"] = "Tất cả";
+    const search = $("#" + prefix + "-search");
+    if (search) search.value = "";
+    justVoted[type].clear();
+    renderAll();
+    resetForm(type);
+    toast(pos >= 0 ? "Đã lưu thay đổi." : "Đã thêm vào danh sách.");
   }
 
   function deleteItem(type, id) {
@@ -916,9 +925,9 @@
     const item = list.find((x) => x.id === id);
     if (!item || !window.confirm('Xoá "' + item.title + '" khỏi danh sách?')) return;
     const next = list.filter((x) => x.id !== id).map((x, i) => ({ ...x, index: i }));
+    if (!save(type === "song" ? { songs: next, anime } : { songs, anime: next })) return;
     if (type === "song") songs = next;
     else anime = next;
-    save();
     renderAll();
     toast("Đã xoá khỏi danh sách.");
   }
