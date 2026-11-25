@@ -646,3 +646,15 @@ body[data-page="anime"] .showcase-card {
   margin-left: 0;
   transform: rotate(1.2deg);
 }
+
+/* Phản hồi ngay tại form quản lý để không bỏ sót trên điện thoại. */
+.form-status {
+  margin: 0; padding: 10px 12px; border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--pink) 45%, transparent);
+  background: color-mix(in srgb, var(--pink) 14%, transparent);
+  color: var(--pink); font-size: 12px; line-height: 1.5;
+}
+.field input.is-invalid, .field textarea.is-invalid, .field select.is-invalid {
+  border-color: var(--pink);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--pink) 18%, transparent);
+}
