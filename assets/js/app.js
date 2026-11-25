@@ -179,6 +179,9 @@
   };
   let lastRankSort = "community";
   let lastAnimeRankSort = "community";
+  // Giữ mục vừa chấm lại trong danh sách "Chưa vote" đến khi đổi bộ lọc,
+  // để người xem kịp thấy điểm mình vừa ghi và điểm cộng đồng vừa hiện ra.
+  const justVoted = { song: new Set(), anime: new Set() };
   const pendingImages = { song: null, anime: null };
   let lastFocused = null;
 
@@ -287,7 +290,8 @@
       mine[songId] = score;
       persistMyVotes(kind);
       delete drafts[songId];
-      toast(changing ? "Đã cập nhật điểm của bạn." : "Đã ghi điểm của bạn. Cảm ơn!");
+      justVoted[kind].add(songId);
+      toast(changing ? "Đã cập nhật điểm của bạn: " + score + "." : "Đã ghi " + score + " điểm. Cảm ơn!");
       await loadRatings();
       (kind === "anime" ? renderAnime : renderSongs)();
     } catch (e) {
@@ -328,7 +332,7 @@
                  placeholder="1–10" value="${esc(drafts[key] ?? (existing != null ? existing : ""))}">
           <button type="submit">${existing != null ? "Sửa" : "Gửi"}</button>
         </form>
-        ${existing != null ? `<span class="my-vote">Bạn đã chấm: ${esc(existing)} — có thể đổi</span>` : ""}
+        ${existing != null ? `<span class="my-vote">${justVoted[kind].has(key) ? "Bạn vừa chấm" : "Bạn đã chấm"}: ${esc(existing)} — có thể đổi</span>` : ""}
         ${status}
       </div>
     `;
@@ -490,8 +494,9 @@
     const mine = kind === "anime" ? myAnimeVotes : myVotes;
     return items.filter((item) => {
       if (genre !== "Tất cả" && !genresOf(item).includes(genre)) return false;
-      if (voteFilter === "voted" && mine[voteKey(item, kind)] == null) return false;
-      if (voteFilter === "unvoted" && mine[voteKey(item, kind)] != null) return false;
+      const key = voteKey(item, kind);
+      if (voteFilter === "voted" && mine[key] == null) return false;
+      if (voteFilter === "unvoted" && mine[key] != null && !justVoted[kind].has(key)) return false;
       if (!q) return true;
       return fold([item.title, item.artist, item.genre, item.alt, item.note].filter(Boolean).join(" ")).includes(q);
     });
@@ -553,6 +558,7 @@
     `).join("");
     container.querySelectorAll(".chip").forEach((chip) => {
       chip.addEventListener("click", () => {
+        justVoted[kind].clear();
         state[stateKey] = chip.dataset.voteFilter;
         render();
       });
