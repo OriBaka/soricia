@@ -6,14 +6,14 @@
   <meta name="description" content="Bảng xếp hạng âm nhạc và nhật ký anime cá nhân của Soricia.">
   <meta name="theme-color" content="#0b0c12">
   <title>Soricia — Nhạc & Anime của tôi</title>
-  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=29">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=30">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=29">
-  <script src="data/data.js?v=29"></script>
-  <script src="data/config.js?v=29"></script>
-  <script src="assets/js/app.js?v=29" defer></script>
+  <link rel="stylesheet" href="assets/css/style.css?v=30">
+  <script src="data/data.js?v=30"></script>
+  <script src="data/config.js?v=30"></script>
+  <script src="assets/js/app.js?v=30" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Chuyển đến nội dung</a>
@@ -119,8 +119,9 @@
         <div class="section-head reveal">
           <div>
             <p class="section-kicker">02 / Anime</p>
-            <h2>Những bộ tôi đã xem</h2>
-            <p class="section-desc">Điểm, trạng thái và cảm nghĩ như một cuốn sổ xem phim. <span class="owner-only">Bấm <strong>✎ Sửa</strong> trên từng tựa để đổi thông tin hoặc thêm poster.</span></p>
+            <h2 id="anime-title">Những bộ tôi đã xem</h2>
+            <p class="section-desc" id="anime-desc-rank">Bảng xếp hạng theo <strong>điểm vote cộng đồng</strong>; mỗi bộ một hạng riêng, bộ cùng điểm được xếp ngẫu nhiên. <span class="owner-only">Bấm <strong>✎ Sửa</strong> trên từng tựa để đổi thông tin hoặc thêm poster.</span></p>
+            <p class="section-desc vote-desc" id="anime-desc-vote" hidden>Chấm điểm 1–10 cho từng bộ. Điểm cộng đồng và điểm của tác giả chỉ hiện sau khi bạn gửi phiếu.</p>
           </div>
           <div class="section-side">
             <p class="section-count"><span id="anime-count">0</span> tựa anime</p>
@@ -128,11 +129,19 @@
           </div>
         </div>
 
+        <div class="view-tabs" id="anime-tabs" role="tablist" aria-label="Chế độ xem anime">
+          <button class="view-tab is-active" type="button" data-view="rank" role="tab" aria-selected="true">Bảng xếp hạng</button>
+          <button class="view-tab" type="button" data-view="vote" role="tab" aria-selected="false">Vote anime</button>
+        </div>
+
         <div class="toolbar reveal">
-          <div class="chips" id="anime-filters" role="group" aria-label="Lọc anime theo thể loại"></div>
+          <div class="filter-groups">
+            <div class="chips" id="anime-filters" role="group" aria-label="Lọc anime theo thể loại"></div>
+            <div class="chips vote-filters" id="anime-vote-filters" role="group" aria-label="Lọc anime theo trạng thái vote"></div>
+          </div>
           <div class="toolbar-right">
             <label class="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/></svg><span class="sr-only">Tìm anime</span><input type="search" id="anime-search" placeholder="Tìm tên anime…" autocomplete="off"></label>
-            <label class="select-wrap"><span class="sr-only">Sắp xếp anime</span><select id="anime-sort"><option value="score">Điểm cao nhất</option><option value="rank">Thứ hạng có sẵn</option><option value="title">Tên A–Z</option><option value="year">Năm mới nhất</option></select></label>
+            <label class="select-wrap"><span class="sr-only">Sắp xếp anime</span><select id="anime-sort"><option value="community" data-anime-score-sort>Điểm cộng đồng</option><option value="score" data-anime-score-sort>Điểm cao nhất</option><option value="rank">Thứ hạng có sẵn</option><option value="title">Tên A–Z</option><option value="year">Năm mới nhất</option></select></label>
           </div>
         </div>
         <div class="anime-grid" id="anime-list" aria-live="polite"></div>
