@@ -626,3 +626,13 @@ body.vote-mode [data-score-stat],
 body.vote-mode #hero-song-score,
 body.vote-mode .meter,
 body.vote-mode [data-score-sort] { display: none; }
+
+/* ---------- anime ranking / blind-vote tabs ---------- */
+.anime-card .song-score.anime-vote {
+  width: 100%; min-width: 0; text-align: left;
+  margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);
+}
+.anime-card .song-score.anime-vote .stars { display: block; margin-bottom: 5px; }
+.anime-card .song-score.anime-vote .vote-form { max-width: none; }
+body.anime-vote-mode #hero-anime-score,
+body.anime-vote-mode [data-anime-score-sort] { display: none; }

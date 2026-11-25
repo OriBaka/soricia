@@ -15,15 +15,19 @@
   const VOTES_ENABLED = !!FIREBASE_URL;
   const VOTER_KEY = "soricia.voter.token";
   const MY_VOTES_KEY = "soricia.my.votes";
+  const MY_ANIME_VOTES_KEY = "soricia.my.anime.votes";
   const OWNER_KEY = "soricia.owner.mode";
   const PLAYER_POS_KEY = "soricia.player.pos";
   const TIE_KEY = "soricia.rank.ties";
   const OWNER_MODE = initOwnerMode();
   let ratings = {};
+  let animeRatings = {};
   let ratingsStatus = VOTES_ENABLED ? "loading" : "off";
   let myVotes = loadMyVotes();
+  let myAnimeVotes = loadMyAnimeVotes();
   let rankTies = loadRankTies();
   const voteDrafts = {};
+  const animeVoteDrafts = {};
 
   function loadRankTies() {
     try {
@@ -33,8 +37,8 @@
   }
 
   // Bài cùng điểm được xếp theo một thứ tự ngẫu nhiên, lưu lại để không đổi liên tục.
-  function tieFor(song) {
-    const key = songKey(song);
+  function tieFor(song, kind = "song") {
+    const key = voteKey(song, kind);
     if (!Number.isFinite(rankTies[key])) {
       rankTies[key] = Math.random();
       try { localStorage.setItem(TIE_KEY, JSON.stringify(rankTies)); } catch (e) { /* chấp nhận ngẫu nhiên trong phiên này */ }
@@ -169,9 +173,10 @@
 
   const state = {
     songView: "rank", songGenre: "Tất cả", songQuery: "", songSort: "community", songVoteFilter: "all",
-    animeGenre: "Tất cả", animeQuery: "", animeSort: "score"
+    animeView: "rank", animeGenre: "Tất cả", animeQuery: "", animeSort: "community", animeVoteFilter: "all"
   };
   let lastRankSort = "community";
+  let lastAnimeRankSort = "community";
   const pendingImages = { song: null, anime: null };
   let lastFocused = null;
 
@@ -193,13 +198,25 @@
     return fold(song.title).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "song-" + (song.index || 0);
   }
 
+  function voteKey(item, kind = "song") {
+    return (kind === "anime" ? "anime-" : "") + songKey(item);
+  }
+
   function loadMyVotes() {
     try { return JSON.parse(localStorage.getItem(MY_VOTES_KEY) || "{}") || {}; }
     catch (e) { return {}; }
   }
 
-  function persistMyVotes() {
-    try { localStorage.setItem(MY_VOTES_KEY, JSON.stringify(myVotes)); } catch (e) { /* ignore */ }
+  function loadMyAnimeVotes() {
+    try { return JSON.parse(localStorage.getItem(MY_ANIME_VOTES_KEY) || "{}") || {}; }
+    catch (e) { return {}; }
+  }
+
+  function persistMyVotes(kind = "song") {
+    try {
+      localStorage.setItem(kind === "anime" ? MY_ANIME_VOTES_KEY : MY_VOTES_KEY,
+        JSON.stringify(kind === "anime" ? myAnimeVotes : myVotes));
+    } catch (e) { /* ignore */ }
   }
 
   function voterToken() {
@@ -223,19 +240,25 @@
       const res = await fetch(firebaseUrl(VOTES_PATH));
       if (!res.ok) throw new Error("HTTP " + res.status);
       const data = await res.json();
-      const next = {};
-      Object.entries(data && typeof data === "object" ? data : {}).forEach(([songId, votes]) => {
+      const nextSongs = {};
+      const nextAnime = {};
+      Object.entries(data && typeof data === "object" ? data : {}).forEach(([voteId, votes]) => {
         const scores = Object.values(votes && typeof votes === "object" ? votes : {})
           .map(Number)
           .filter((n) => n >= 1 && n <= 10);
         if (!scores.length) return;
-        next[songId] = {
+        const entry = {
           avg: scores.reduce((a, b) => a + b, 0) / scores.length,
           count: scores.length
         };
+        if (voteId.startsWith("anime-")) nextAnime[voteId] = entry;
+        else nextSongs[voteId] = entry;
       });
-      const unchanged = ratingsStatus !== "error" && JSON.stringify(next) === JSON.stringify(ratings);
-      ratings = next;
+      const unchanged = ratingsStatus !== "error"
+        && JSON.stringify(nextSongs) === JSON.stringify(ratings)
+        && JSON.stringify(nextAnime) === JSON.stringify(animeRatings);
+      ratings = nextSongs;
+      animeRatings = nextAnime;
       ratingsStatus = "ready";
       if (unchanged) return; // don't wipe what a visitor is typing
     } catch (e) {
@@ -243,52 +266,64 @@
       console.warn("Không tải được điểm bình chọn:", e);
     }
     renderSongs();
+    renderAnime();
   }
 
-  async function submitVote(songId, score) {
+  async function submitVote(kind, songId, score) {
     if (!VOTES_ENABLED) return;
-    const changing = myVotes[songId] != null;
+    const mine = kind === "anime" ? myAnimeVotes : myVotes;
+    const drafts = kind === "anime" ? animeVoteDrafts : voteDrafts;
+    const changing = mine[songId] != null;
+    const voteId = songId; // voteKey() already namespaces anime entries.
     try {
-      const res = await fetch(firebaseUrl(VOTES_PATH + "/" + encodeURIComponent(songId) + "/" + encodeURIComponent(voterToken())), {
+      const res = await fetch(firebaseUrl(VOTES_PATH + "/" + encodeURIComponent(voteId) + "/" + encodeURIComponent(voterToken())), {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(score)
       });
       if (!res.ok) throw new Error("HTTP " + res.status);
-      myVotes[songId] = score;
-      persistMyVotes();
-      delete voteDrafts[songId];
+      mine[songId] = score;
+      persistMyVotes(kind);
+      delete drafts[songId];
       toast(changing ? "Đã cập nhật điểm của bạn." : "Đã ghi điểm của bạn. Cảm ơn!");
       await loadRatings();
-      renderSongs();
+      (kind === "anime" ? renderAnime : renderSongs)();
     } catch (e) {
       toast("Không gửi được điểm. Thử lại sau.");
     }
   }
 
-  function scoreBlock(song) {
-    const key = songKey(song);
+  function scoreBlock(song, kind = "song") {
+    const key = voteKey(song, kind);
+    const table = kind === "anime" ? animeRatings : ratings;
+    const mine = kind === "anime" ? myAnimeVotes : myVotes;
+    const drafts = kind === "anime" ? animeVoteDrafts : voteDrafts;
+    const view = kind === "anime" ? state.animeView : state.songView;
     if (!VOTES_ENABLED) {
       return `<div class="song-score"><strong>${fmt(song.score)}</strong><small>điểm của tác giả</small><span class="vote-note">Bình chọn chưa được bật.</span></div>`;
     }
-    const rating = ratings[key];
+    const rating = table[key];
     const avg = rating && rating.count ? fmt(rating.avg) : "—";
     const countText = rating && rating.count ? rating.count + " lượt chấm" : "chưa có lượt chấm";
-    const existing = myVotes[key];
-    const blind = state.songView === "vote" && existing == null;
+    const existing = mine[key];
+    const blind = view === "vote" && existing == null;
+    const stars = kind === "anime" && !blind
+      ? `<span class="stars" aria-label="${Math.round((song.score || 0) / 2)}/5 sao">${"★".repeat(Math.round((song.score || 0) / 2))}${"☆".repeat(5 - Math.round((song.score || 0) / 2))}</span>`
+      : "";
     const scoreInfo = blind
       ? `<span class="vote-note">Chấm điểm để xem điểm cộng đồng và điểm của tác giả.</span>`
-      : `<strong>${avg}</strong>
+      : `${stars}
+         <strong>${avg}</strong>
          <small>điểm trung bình · ${countText}</small>
          <div class="author-score">Điểm của tác giả: <b>${fmt(song.score)}</b></div>`;
     const status = !blind && ratingsStatus === "error" ? `<span class="vote-note">Chưa tải được điểm cộng đồng.</span>` : "";
     return `
-      <div class="song-score">
+      <div class="song-score${kind === "anime" ? " anime-vote" : ""}">
         ${scoreInfo}
-        <form class="vote-form" data-song="${esc(key)}">
-          <label class="sr-only" for="vote-${esc(key)}">Điểm của bạn cho bài ${esc(song.title)}</label>
-          <input id="vote-${esc(key)}" type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
-                 placeholder="1–10" value="${esc(voteDrafts[key] ?? (existing != null ? existing : ""))}">
+        <form class="vote-form" data-kind="${kind}" data-song="${esc(key)}">
+          <label class="sr-only" for="vote-${kind}-${esc(key)}">Điểm của bạn cho ${kind === "anime" ? "bộ " : "bài "}${esc(song.title)}</label>
+          <input id="vote-${kind}-${esc(key)}" type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
+                 placeholder="1–10" value="${esc(drafts[key] ?? (existing != null ? existing : ""))}">
           <button type="submit">${existing != null ? "Sửa" : "Gửi"}</button>
         </form>
         ${existing != null ? `<span class="my-vote">Bạn đã chấm: ${esc(existing)} — có thể đổi</span>` : ""}
@@ -422,21 +457,21 @@
     });
   }
 
-  function displayScore(song, mode) {
+  function displayScore(song, mode, kind = "song") {
     if (mode === "community") {
-      const r = ratings[songKey(song)];
+      const r = (kind === "anime" ? animeRatings : ratings)[voteKey(song, kind)];
       return r && r.count ? Number(fmt(r.avg)) : -1;
     }
     return Number(fmt(song.score)) || 0;
   }
 
-  function sortItems(items, mode) {
+  function sortItems(items, mode, kind = "song") {
     const copy = [...items];
     if (mode === "rank") return copy.sort((a, b) => a.rank - b.rank);
     if (mode === "title") return copy.sort((a, b) => String(a.title).localeCompare(String(b.title), "vi"));
     if (mode === "year") return copy.sort((a, b) => (b.year || 0) - (a.year || 0));
     if (mode === "community" || mode === "score") {
-      return copy.sort((a, b) => displayScore(b, mode) - displayScore(a, mode) || tieFor(a) - tieFor(b));
+      return copy.sort((a, b) => displayScore(b, mode, kind) - displayScore(a, mode, kind) || tieFor(a, kind) - tieFor(b, kind));
     }
     return copy;
   }
@@ -446,12 +481,13 @@
     return [...new Set(raw.map((g) => String(g).trim()).filter(Boolean))];
   }
 
-  function filterItems(items, genre, query, voteFilter) {
+  function filterItems(items, genre, query, voteFilter, kind = "song") {
     const q = fold(query).trim();
+    const mine = kind === "anime" ? myAnimeVotes : myVotes;
     return items.filter((item) => {
       if (genre !== "Tất cả" && !genresOf(item).includes(genre)) return false;
-      if (voteFilter === "voted" && myVotes[songKey(item)] == null) return false;
-      if (voteFilter === "unvoted" && myVotes[songKey(item)] != null) return false;
+      if (voteFilter === "voted" && mine[voteKey(item, kind)] == null) return false;
+      if (voteFilter === "unvoted" && mine[voteKey(item, kind)] != null) return false;
       if (!q) return true;
       return fold([item.title, item.artist, item.genre, item.alt, item.note].filter(Boolean).join(" ")).includes(q);
     });
@@ -479,31 +515,40 @@
     { value: "unvoted", label: "Chưa vote" }
   ];
 
-  function voteFilterCounts() {
-    const voted = songs.filter((song) => myVotes[songKey(song)] != null).length;
-    return { all: songs.length, voted, unvoted: songs.length - voted };
+  function voteContext(kind = "song") {
+    return kind === "anime"
+      ? { container: $("#anime-vote-filters"), stateKey: "animeVoteFilter", items: anime, mine: myAnimeVotes, render: renderAnime }
+      : { container: $("#music-vote-filters"), stateKey: "songVoteFilter", items: songs, mine: myVotes, render: renderSongs };
   }
 
-  function updateVoteFilterChips() {
-    const counts = voteFilterCounts();
-    $("#music-vote-filters").querySelectorAll(".chip").forEach((chip) => {
+  function voteFilterCounts(kind = "song") {
+    const { items, mine } = voteContext(kind);
+    const voted = items.filter((item) => mine[voteKey(item, kind)] != null).length;
+    return { all: items.length, voted, unvoted: items.length - voted };
+  }
+
+  function updateVoteFilterChips(kind = "song") {
+    const { container, stateKey } = voteContext(kind);
+    const counts = voteFilterCounts(kind);
+    container.querySelectorAll(".chip").forEach((chip) => {
       const value = chip.dataset.voteFilter;
-      chip.setAttribute("aria-pressed", String(value === state.songVoteFilter));
+      chip.setAttribute("aria-pressed", String(value === state[stateKey]));
       chip.querySelector(".chip-count").textContent = counts[value];
     });
   }
 
-  function renderVoteFilterChips() {
-    const counts = voteFilterCounts();
-    $("#music-vote-filters").innerHTML = VOTE_FILTERS.map(({ value, label }) => `
-      <button type="button" class="chip" data-vote-filter="${value}" aria-pressed="${value === state.songVoteFilter}">
+  function renderVoteFilterChips(kind = "song") {
+    const { container, stateKey, render } = voteContext(kind);
+    const counts = voteFilterCounts(kind);
+    container.innerHTML = VOTE_FILTERS.map(({ value, label }) => `
+      <button type="button" class="chip" data-vote-filter="${value}" aria-pressed="${value === state[stateKey]}">
         ${label}<span class="chip-count">${counts[value]}</span>
       </button>
     `).join("");
-    $("#music-vote-filters").querySelectorAll(".chip").forEach((chip) => {
+    container.querySelectorAll(".chip").forEach((chip) => {
       chip.addEventListener("click", () => {
-        state.songVoteFilter = chip.dataset.voteFilter;
-        renderSongs();
+        state[stateKey] = chip.dataset.voteFilter;
+        render();
       });
     });
   }
@@ -544,9 +589,9 @@
   }
 
   function renderSongs() {
-    const items = sortItems(filterItems(songs, state.songGenre, state.songQuery, state.songVoteFilter), state.songSort);
+    const items = sortItems(filterItems(songs, state.songGenre, state.songQuery, state.songVoteFilter, "song"), state.songSort, "song");
     const rows = items.map((song, i) => ({ song, rank: i + 1 }));
-    updateVoteFilterChips();
+    updateVoteFilterChips("song");
     $("#music-list").innerHTML = rows.map(({ song, rank }) => `
       <li class="song${rank === 1 ? " is-top" : ""}">
         <span class="song-rank${song.image ? " has-image" : ""}" aria-label="Hạng ${rank}" title="Hạng ${rank}">
@@ -588,11 +633,36 @@
           : "Không tìm thấy bài hát phù hợp. Thử đổi từ khoá hoặc thể loại nhé.";
   }
 
+  function setAnimeView(view) {
+    if (view !== "rank" && view !== "vote") return;
+    state.animeView = view;
+    document.body.classList.toggle("anime-vote-mode", view === "vote");
+    document.querySelectorAll("#anime-tabs .view-tab").forEach((tab) => {
+      const active = tab.dataset.view === view;
+      tab.classList.toggle("is-active", active);
+      tab.setAttribute("aria-selected", String(active));
+    });
+    $("#anime-title").textContent = view === "vote" ? "Chấm điểm anime" : "Những bộ tôi đã xem";
+    $("#anime-desc-rank").hidden = view === "vote";
+    $("#anime-desc-vote").hidden = view !== "vote";
+    if (view === "vote") {
+      if (state.animeSort === "score" || state.animeSort === "community") {
+        lastAnimeRankSort = state.animeSort;
+        state.animeSort = "rank";
+      }
+    } else if (lastAnimeRankSort) {
+      state.animeSort = lastAnimeRankSort;
+      lastAnimeRankSort = "community";
+    }
+    $("#anime-sort").value = state.animeSort;
+    renderAnime();
+  }
+
   function renderAnime() {
-    const items = sortItems(filterItems(anime, state.animeGenre, state.animeQuery), state.animeSort);
+    const items = sortItems(filterItems(anime, state.animeGenre, state.animeQuery, state.animeVoteFilter, "anime"), state.animeSort, "anime");
+    updateVoteFilterChips("anime");
     $("#anime-list").innerHTML = items.map((show, i) => {
       const [from, to] = paletteFor(show.title);
-      const stars = Math.round((show.score || 0) / 2);
       const watching = fold(show.status).includes("dang");
       const meta = [...genresOf(show), show.year ? String(show.year) : null, show.episodes ? show.episodes + " tập" : null].filter(Boolean);
       return `
@@ -609,10 +679,7 @@
             <p class="anime-sub">${esc(meta.join(" · "))}</p>
             ${show.note ? `<p class="anime-note">${esc(show.note)}</p>` : ""}
             ${actionsFor("anime", show)}
-            <div class="anime-foot">
-              <span class="stars" aria-label="${stars}/5 sao">${"★".repeat(stars)}${"☆".repeat(5 - stars)}</span>
-              <span class="anime-score">${fmt(show.score)} <small>/ 10</small></span>
-            </div>
+            ${scoreBlock(show, "anime")}
           </div>
         </article>
       `;
@@ -623,7 +690,11 @@
     empty.hidden = items.length > 0;
     empty.textContent = anime.length === 0
       ? "Chưa có anime nào. Bấm “+ Thêm anime” để thêm tựa đầu tiên."
-      : "Chưa có anime nào khớp với bộ lọc này.";
+      : state.animeVoteFilter === "voted" && !Object.keys(myAnimeVotes).length
+        ? "Bạn chưa vote anime nào. Chuyển sang “Chưa vote” để bắt đầu nhé."
+        : state.animeVoteFilter === "unvoted" && Object.keys(myAnimeVotes).length >= anime.length
+          ? "Bạn đã vote hết các anime rồi — cảm ơn bạn!"
+          : "Chưa có anime nào khớp với bộ lọc này.";
   }
 
   function fillHeroAndStats() {
@@ -668,7 +739,8 @@
     const genres = uniqueGenres([...songs, ...anime]);
     $("#genre-options").innerHTML = genres.map((g) => `<option value="${esc(g)}"></option>`).join("");
     makeChips($("#music-filters"), uniqueGenres(songs), state.songGenre, (g) => { state.songGenre = g; renderSongs(); });
-    renderVoteFilterChips();
+    renderVoteFilterChips("song");
+    renderVoteFilterChips("anime");
     makeChips($("#anime-filters"), uniqueGenres(anime), state.animeGenre, (g) => { state.animeGenre = g; renderAnime(); });
   }
 
@@ -859,7 +931,7 @@
       if (opener) { openPanel(opener.dataset.openEditor); return; }
       const button = e.target.closest("button[data-action]");
       if (!button) return;
-      if (button.dataset.action === "vote") { submitVote(button.dataset.id, Number(button.dataset.score)); return; }
+      if (button.dataset.action === "vote") { submitVote("song", button.dataset.id, Number(button.dataset.score)); return; }
       if (button.dataset.action === "edit") openPanel(button.dataset.type, button.dataset.id);
       if (button.dataset.action === "delete") deleteItem(button.dataset.type, button.dataset.id);
     });
@@ -867,7 +939,8 @@
     document.addEventListener("input", (e) => {
       if (!e.target.matches(".vote-form input")) return;
       const form = e.target.closest("form.vote-form");
-      voteDrafts[form.dataset.song] = e.target.value;
+      const drafts = form.dataset.kind === "anime" ? animeVoteDrafts : voteDrafts;
+      drafts[form.dataset.song] = e.target.value;
     });
 
     document.addEventListener("submit", (e) => {
@@ -882,7 +955,7 @@
         input.focus();
         return;
       }
-      submitVote(form.dataset.song, score);
+      submitVote(form.dataset.kind || "song", form.dataset.song, score);
     });
 
     ["song", "anime"].forEach((type) => {
@@ -1018,6 +1091,9 @@
     $("#footer-year").textContent = year;
     document.querySelectorAll("#music-tabs .view-tab").forEach((tab) => {
       tab.addEventListener("click", () => setSongView(tab.dataset.view));
+    });
+    document.querySelectorAll("#anime-tabs .view-tab").forEach((tab) => {
+      tab.addEventListener("click", () => setAnimeView(tab.dataset.view));
     });
     $("#music-search").addEventListener("input", (e) => { state.songQuery = e.target.value; renderSongs(); });
     $("#anime-search").addEventListener("input", (e) => { state.animeQuery = e.target.value; renderAnime(); });
