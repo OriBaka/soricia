@@ -636,3 +636,6 @@ body.vote-mode [data-score-sort] { display: none; }
 .anime-card .song-score.anime-vote .vote-form { max-width: none; }
 body.anime-vote-mode #hero-anime-score,
 body.anime-vote-mode [data-anime-score-sort] { display: none; }
+@media (max-width: 620px) {
+  .anime-card .song-score.anime-vote { display: block; }
+}
