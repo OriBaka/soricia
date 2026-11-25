@@ -1,6 +1,6 @@
 # Soricia — nhạc & anime của tôi
 
-Trang web cá nhân để xếp hạng bài hát theo thể loại và ghi điểm những bộ anime đã xem.
+Trang web cá nhân gồm hai trang riêng: `index.html` (nhạc) và `anime.html` (anime), dùng chung CSS/JS, dữ liệu và bảng quản lý.
 Chạy hoàn toàn bằng HTML/CSS/JavaScript tĩnh, không cần cài đặt hay build.
 
 **Website:** https://oribaka.github.io/soricia/
@@ -108,7 +108,8 @@ python3 -m http.server 8000
 ## Cấu trúc
 
 ```
-index.html            Trang chính + bảng quản lý
+index.html            Trang âm nhạc + bảng quản lý dùng chung
+anime.html            Trang anime + bảng quản lý dùng chung
 assets/css/style.css  Giao diện, ảnh thumbnail, bảng quản lý
 assets/js/app.js      Render, lọc, lưu trình duyệt, nén ảnh, xuất/nhập
 data/data.js          Dữ liệu khởi tạo (seed)

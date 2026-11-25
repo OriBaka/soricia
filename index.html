@@ -3,19 +3,19 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Bảng xếp hạng âm nhạc và nhật ký anime cá nhân của Soricia.">
+  <meta name="description" content="Bảng xếp hạng nhạc và bình chọn cộng đồng của Soricia.">
   <meta name="theme-color" content="#0b0c12">
-  <title>Soricia — Nhạc & Anime của tôi</title>
-  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=34">
+  <title>Soricia — Nhạc của tôi</title>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=35">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=34">
-  <script src="data/data.js?v=34"></script>
-  <script src="data/config.js?v=34"></script>
-  <script src="assets/js/app.js?v=34" defer></script>
+  <link rel="stylesheet" href="assets/css/style.css?v=35">
+  <script src="data/data.js?v=35"></script>
+  <script src="data/config.js?v=35"></script>
+  <script src="assets/js/app.js?v=35" defer></script>
 </head>
-<body>
+<body data-page="music">
   <a class="skip-link" href="#main">Chuyển đến nội dung</a>
   <div class="ambient" aria-hidden="true"><span></span><span></span><span></span></div>
 
@@ -25,10 +25,10 @@
         <span class="brand-mark" aria-hidden="true">S</span>
         <span class="brand-name">SORICIA<span class="brand-dot">.</span></span>
       </a>
-      <nav class="main-nav" aria-label="Điều hướng chính">
+            <nav class="main-nav" aria-label="Điều hướng chính">
         <a href="#overview">Tổng quan</a>
-        <a href="#music">Âm nhạc</a>
-        <a href="#anime">Anime</a>
+        <a href="index.html" aria-current="page">Âm nhạc</a>
+        <a href="anime.html">Anime</a>
       </nav>
       <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Đổi giao diện sáng/tối" title="Đổi giao diện">
         <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.4 14.5A8.6 8.6 0 0 1 9.5 3.6 8.6 8.6 0 1 0 20.4 14.5Z"/></svg>
@@ -45,36 +45,30 @@
     <section class="hero" id="top">
       <div class="container hero-grid">
         <div class="hero-copy">
-          <p class="eyebrow"><span class="pulse" aria-hidden="true"></span> Nhật ký nghe &amp; xem · <span id="hero-year">2026</span></p>
-          <h1>Những bản nhạc<br>và thế giới <em>tôi ở lại.</em></h1>
-          <p class="hero-lead">Nơi tôi lưu lại các bài hát nghe đi nghe lại, cùng những bộ anime còn dư âm sau khi kết thúc. Xếp hạng theo cảm nhân riêng — không theo bất cứ bảng nào khác.</p>
+          <p class="eyebrow"><span class="pulse" aria-hidden="true"></span> Nhật ký nghe · <span id="hero-year">2026</span></p>
+          <h1>Những bản nhạc<br><em>tôi nghe đi nghe lại.</em></h1>
+          <p class="hero-lead">Bảng xếp hạng Phonk theo cảm nhận riêng — không theo bất cứ bảng nào khác. Nghe nhạc và chấm điểm ngay trên trang.</p>
           <div class="hero-actions">
             <a class="btn btn-primary" href="#music">Khám phá âm nhạc <span aria-hidden="true">↗</span></a>
-            <a class="btn btn-ghost" href="#anime">Xem danh sách anime</a>
+            <a class="btn btn-ghost" href="anime.html">Xem danh sách anime</a>
           </div>
-          <p class="hero-hint">Gõ tên bài hát hoặc tựa anime để tìm ngay trong trang.</p>
+          <p class="hero-hint">Gõ tên bài hát hoặc nghệ sĩ để tìm ngay trong trang.</p>
         </div>
-        <div class="hero-showcase" aria-label="Một số mục yêu thích">
+        <div class="hero-showcase" aria-label="Bài hát yêu thích">
           <article class="showcase-card showcase-music">
             <div class="showcase-top"><span class="tag">BÀI HÁT SỐ 1</span><span class="score-pill" id="hero-song-score">—</span></div>
             <div class="showcase-body"><span class="showcase-index">01</span><div><h2 id="hero-song-title">Đang tải…</h2><p id="hero-song-artist"></p></div></div>
             <div class="showcase-foot"><span id="hero-song-genre"></span><span>◉ Nghe nhiều nhất</span></div>
-          </article>
-          <article class="showcase-card showcase-anime">
-            <div class="showcase-top"><span class="tag">ANIME YÊU THÍCH</span><span class="score-pill" id="hero-anime-score">—</span></div>
-            <div class="showcase-body"><span class="showcase-index">01</span><div><h2 id="hero-anime-title">Đang tải…</h2><p id="hero-anime-meta"></p></div></div>
-            <div class="showcase-foot"><span id="hero-anime-genre"></span><span>✦ Đã xem</span></div>
           </article>
           <div class="showcase-sticker" aria-hidden="true">rated<br>by me<span>✳</span></div>
         </div>
       </div>
     </section>
 
-    <section class="stats-section" id="overview" aria-label="Tổng quan bộ sưu tập">
+    <section class="stats-section" id="overview" aria-label="Tổng quan âm nhạc">
       <div class="container stats-grid">
         <div class="stat"><strong data-stat="songs">0</strong><span>Bài hát trong bảng xếp hạng</span></div>
         <div class="stat"><strong data-stat="genres">0</strong><span>Thể loại âm nhạc</span></div>
-        <div class="stat"><strong data-stat="anime">0</strong><span>Bộ anime đã ghi nhận</span></div>
         <div class="stat" data-score-stat><strong data-stat="avg">0</strong><span>Điểm trung bình / 10</span></div>
       </div>
     </section>
@@ -114,40 +108,6 @@
       </div>
     </section>
 
-    <section class="section section-anime" id="anime">
-      <div class="container">
-        <div class="section-head reveal">
-          <div>
-            <p class="section-kicker">02 / Anime</p>
-            <h2 id="anime-title">Những bộ tôi đã xem</h2>
-            <p class="section-desc" id="anime-desc-rank">Bảng xếp hạng theo <strong>điểm vote cộng đồng</strong>; mỗi bộ một hạng riêng, bộ cùng điểm được xếp ngẫu nhiên.</p>
-            <p class="section-desc vote-desc" id="anime-desc-vote" hidden>Chấm điểm 1–10 cho từng bộ. Điểm cộng đồng và điểm của tác giả chỉ hiện sau khi bạn gửi phiếu.</p>
-          </div>
-          <div class="section-side">
-            <p class="section-count"><span id="anime-count">0</span> tựa anime</p>
-            <button class="btn-add" type="button" data-open-editor="anime">+ Thêm anime</button>
-          </div>
-        </div>
-
-        <div class="view-tabs" id="anime-tabs" role="tablist" aria-label="Chế độ xem anime">
-          <button class="view-tab is-active" type="button" data-view="rank" role="tab" aria-selected="true">Bảng xếp hạng</button>
-          <button class="view-tab" type="button" data-view="vote" role="tab" aria-selected="false">Vote anime</button>
-        </div>
-
-        <div class="toolbar reveal">
-          <div class="filter-groups">
-            <div class="chips" id="anime-filters" role="group" aria-label="Lọc anime theo thể loại"></div>
-            <div class="chips vote-filters" id="anime-vote-filters" role="group" aria-label="Lọc anime theo trạng thái vote"></div>
-          </div>
-          <div class="toolbar-right">
-            <label class="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/></svg><span class="sr-only">Tìm anime</span><input type="search" id="anime-search" placeholder="Tìm tên anime…" autocomplete="off"></label>
-            <label class="select-wrap"><span class="sr-only">Sắp xếp anime</span><select id="anime-sort"><option value="community" data-anime-score-sort>Điểm cộng đồng</option><option value="score" data-anime-score-sort>Điểm cao nhất</option><option value="rank">Thứ hạng có sẵn</option><option value="title">Tên A–Z</option><option value="year">Năm mới nhất</option></select></label>
-          </div>
-        </div>
-        <div class="anime-grid" id="anime-list" aria-live="polite"></div>
-        <p class="empty-state" id="anime-empty" hidden>Chưa có anime nào khớp với bộ lọc này.</p>
-      </div>
-    </section>
   </main>
 
   <div class="panel-backdrop" id="panel-backdrop" hidden></div>

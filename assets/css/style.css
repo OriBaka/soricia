@@ -639,3 +639,10 @@ body.anime-vote-mode [data-anime-score-sort] { display: none; }
 @media (max-width: 620px) {
   .anime-card .song-score.anime-vote { display: block; }
 }
+
+/* Mỗi trang giờ chỉ có một card giới thiệu — bỏ độ lệch của bản hai card. */
+body[data-page="music"] .showcase-card,
+body[data-page="anime"] .showcase-card {
+  margin-left: 0;
+  transform: rotate(1.2deg);
+}

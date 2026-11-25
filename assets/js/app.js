@@ -47,6 +47,8 @@
   }
 
   const $ = (selector) => document.querySelector(selector);
+  const HAS_MUSIC = !!$("#music-list");
+  const HAS_ANIME = !!$("#anime-list");
   const clone = (value) => JSON.parse(JSON.stringify(value));
   const uid = (prefix) => prefix + "-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 7);
   const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (ch) => ({
@@ -405,6 +407,7 @@
   }
 
   function openPlayer(id, title) {
+    if (!$("#player-modal")) return;
     const video = youtubeId(id);
     if (!video) return;
     $("#player-frame").innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(video)}?autoplay=1&rel=0" title="Nghe bài hát" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
@@ -420,6 +423,7 @@
   }
 
   function initPlayerDrag() {
+    if (!$("#player-modal")) return;
     const handle = $("#player-modal .player-toolbar");
     const box = $("#player-modal .player-box");
     let drag = null;
@@ -529,6 +533,7 @@
 
   function updateVoteFilterChips(kind = "song") {
     const { container, stateKey } = voteContext(kind);
+    if (!container) return;
     const counts = voteFilterCounts(kind);
     container.querySelectorAll(".chip").forEach((chip) => {
       const value = chip.dataset.voteFilter;
@@ -539,6 +544,7 @@
 
   function renderVoteFilterChips(kind = "song") {
     const { container, stateKey, render } = voteContext(kind);
+    if (!container) return;
     const counts = voteFilterCounts(kind);
     container.innerHTML = VOTE_FILTERS.map(({ value, label }) => `
       <button type="button" class="chip" data-vote-filter="${value}" aria-pressed="${value === state[stateKey]}">
@@ -564,7 +570,7 @@
   }
 
   function setSongView(view) {
-    if (view !== "rank" && view !== "vote") return;
+    if (!HAS_MUSIC || (view !== "rank" && view !== "vote")) return;
     state.songView = view;
     document.body.classList.toggle("vote-mode", view === "vote");
     document.querySelectorAll("#music-tabs .view-tab").forEach((tab) => {
@@ -589,6 +595,7 @@
   }
 
   function renderSongs() {
+    if (!HAS_MUSIC) return;
     const items = sortItems(filterItems(songs, state.songGenre, state.songQuery, state.songVoteFilter, "song"), state.songSort, "song");
     const rows = items.map((song, i) => ({ song, rank: i + 1 }));
     updateVoteFilterChips("song");
@@ -634,7 +641,7 @@
   }
 
   function setAnimeView(view) {
-    if (view !== "rank" && view !== "vote") return;
+    if (!HAS_ANIME || (view !== "rank" && view !== "vote")) return;
     state.animeView = view;
     document.body.classList.toggle("anime-vote-mode", view === "vote");
     document.querySelectorAll("#anime-tabs .view-tab").forEach((tab) => {
@@ -659,6 +666,7 @@
   }
 
   function renderAnime() {
+    if (!HAS_ANIME) return;
     const items = sortItems(filterItems(anime, state.animeGenre, state.animeQuery, state.animeVoteFilter, "anime"), state.animeSort, "anime");
     updateVoteFilterChips("anime");
     $("#anime-list").innerHTML = items.map((show, i) => {
@@ -697,51 +705,65 @@
           : "Chưa có anime nào khớp với bộ lọc này.";
   }
 
+  function setStat(name, value) {
+    const el = document.querySelector('[data-stat="' + name + '"]');
+    if (el) el.textContent = value;
+  }
+
   function fillHeroAndStats() {
     const bestSong = [...songs].sort((a, b) => (b.score || 0) - (a.score || 0))[0];
     const bestAnime = [...anime].sort((a, b) => (b.score || 0) - (a.score || 0))[0];
-    if (bestSong) {
-      $("#hero-song-title").textContent = bestSong.title;
-      $("#hero-song-artist").textContent = bestSong.artist || "";
-      $("#hero-song-genre").textContent = bestSong.genre || "";
-      $("#hero-song-score").textContent = fmt(bestSong.score);
-    } else {
-      $("#hero-song-title").textContent = "Chưa có bài hát";
-      $("#hero-song-artist").textContent = "Danh sách đang chờ cập nhật";
-      $("#hero-song-genre").textContent = "Sắp thêm";
-      $("#hero-song-score").textContent = "—";
+    if (HAS_MUSIC && $("#hero-song-title")) {
+      if (bestSong) {
+        $("#hero-song-title").textContent = bestSong.title;
+        $("#hero-song-artist").textContent = bestSong.artist || "";
+        $("#hero-song-genre").textContent = bestSong.genre || "";
+        $("#hero-song-score").textContent = fmt(bestSong.score);
+      } else {
+        $("#hero-song-title").textContent = "Chưa có bài hát";
+        $("#hero-song-artist").textContent = "Danh sách đang chờ cập nhật";
+        $("#hero-song-genre").textContent = "Sắp thêm";
+        $("#hero-song-score").textContent = "—";
+      }
     }
-    if (bestAnime) {
-      $("#hero-anime-title").textContent = bestAnime.title;
-      $("#hero-anime-meta").textContent = [bestAnime.year, bestAnime.episodes ? bestAnime.episodes + " tập" : null].filter(Boolean).join(" · ");
-      $("#hero-anime-genre").textContent = bestAnime.genre || "";
-      $("#hero-anime-score").textContent = fmt(bestAnime.score);
-    } else {
-      $("#hero-anime-title").textContent = "Chưa có anime";
-      $("#hero-anime-meta").textContent = "Danh sách đang chờ cập nhật";
-      $("#hero-anime-genre").textContent = "Sắp thêm";
-      $("#hero-anime-score").textContent = "—";
+    if (HAS_ANIME && $("#hero-anime-title")) {
+      if (bestAnime) {
+        $("#hero-anime-title").textContent = bestAnime.title;
+        $("#hero-anime-meta").textContent = [bestAnime.year, bestAnime.episodes ? bestAnime.episodes + " tập" : null].filter(Boolean).join(" · ");
+        $("#hero-anime-genre").textContent = bestAnime.genre || "";
+        $("#hero-anime-score").textContent = fmt(bestAnime.score);
+      } else {
+        $("#hero-anime-title").textContent = "Chưa có anime";
+        $("#hero-anime-meta").textContent = "Danh sách đang chờ cập nhật";
+        $("#hero-anime-genre").textContent = "Sắp thêm";
+        $("#hero-anime-score").textContent = "—";
+      }
     }
-    const allScores = [...songs, ...anime].map((item) => Number(item.score) || 0);
+    const shown = HAS_MUSIC && HAS_ANIME ? [...songs, ...anime] : HAS_MUSIC ? songs : anime;
+    const allScores = shown.map((item) => Number(item.score) || 0);
     const avg = allScores.length ? allScores.reduce((a, b) => a + b, 0) / allScores.length : 0;
-    document.querySelector('[data-stat="songs"]').textContent = songs.length;
-    document.querySelector('[data-stat="genres"]').textContent = new Set([...songs, ...anime].map((x) => x.genre).filter(Boolean)).size;
-    document.querySelector('[data-stat="anime"]').textContent = anime.length;
-    document.querySelector('[data-stat="avg"]').textContent = allScores.length ? fmt(avg) : "—";
+    setStat("songs", songs.length);
+    setStat("anime", anime.length);
+    setStat("genres", new Set(shown.map((item) => item.genre).filter(Boolean)).size);
+    setStat("avg", allScores.length ? fmt(avg) : "—");
   }
 
   function renderAll() {
-    if (state.songGenre !== "Tất cả" && !uniqueGenres(songs).includes(state.songGenre)) state.songGenre = "Tất cả";
-    if (state.animeGenre !== "Tất cả" && !uniqueGenres(anime).includes(state.animeGenre)) state.animeGenre = "Tất cả";
+    if (HAS_MUSIC && state.songGenre !== "Tất cả" && !uniqueGenres(songs).includes(state.songGenre)) state.songGenre = "Tất cả";
+    if (HAS_ANIME && state.animeGenre !== "Tất cả" && !uniqueGenres(anime).includes(state.animeGenre)) state.animeGenre = "Tất cả";
     renderSongs();
     renderAnime();
     fillHeroAndStats();
-    const genres = uniqueGenres([...songs, ...anime]);
+    const genres = uniqueGenres(HAS_MUSIC && HAS_ANIME ? [...songs, ...anime] : HAS_MUSIC ? songs : anime);
     $("#genre-options").innerHTML = genres.map((g) => `<option value="${esc(g)}"></option>`).join("");
-    makeChips($("#music-filters"), uniqueGenres(songs), state.songGenre, (g) => { state.songGenre = g; renderSongs(); });
-    renderVoteFilterChips("song");
-    renderVoteFilterChips("anime");
-    makeChips($("#anime-filters"), uniqueGenres(anime), state.animeGenre, (g) => { state.animeGenre = g; renderAnime(); });
+    if (HAS_MUSIC) {
+      makeChips($("#music-filters"), uniqueGenres(songs), state.songGenre, (g) => { state.songGenre = g; renderSongs(); });
+      renderVoteFilterChips("song");
+    }
+    if (HAS_ANIME) {
+      renderVoteFilterChips("anime");
+      makeChips($("#anime-filters"), uniqueGenres(anime), state.animeGenre, (g) => { state.animeGenre = g; renderAnime(); });
+    }
   }
 
   /* ---------- image handling ---------- */
@@ -905,13 +927,14 @@
   }
 
   function initManager() {
-    $("#manage-btn").addEventListener("click", () => openPanel("song"));
+    $("#manage-btn").addEventListener("click", () => openPanel(HAS_ANIME && !HAS_MUSIC ? "anime" : "song"));
     $("#panel-close").addEventListener("click", closePanel);
     $("#panel-backdrop").addEventListener("click", closePanel);
     document.addEventListener("keydown", (e) => {
       if (e.key !== "Escape") return;
-      if (!$("#player-modal").hidden) {
-        if ($("#player-modal").classList.contains("is-expanded")) setPlayerSize(false);
+      const modal = $("#player-modal");
+      if (modal && !modal.hidden) {
+        if (modal.classList.contains("is-expanded")) setPlayerSize(false);
         else closePlayer();
       } else if (document.body.classList.contains("panel-open")) closePanel();
     });
@@ -922,7 +945,8 @@
     document.addEventListener("click", (e) => {
       if (e.target.closest("[data-close-player]")) { closePlayer(); return; }
       if (e.target.closest("[data-toggle-player]")) {
-        setPlayerSize(!$("#player-modal").classList.contains("is-expanded"));
+        const modal = $("#player-modal");
+        if (modal) setPlayerSize(!modal.classList.contains("is-expanded"));
         return;
       }
       const play = e.target.closest("[data-play]");
@@ -1089,16 +1113,20 @@
     const year = new Date().getFullYear();
     $("#hero-year").textContent = year;
     $("#footer-year").textContent = year;
-    document.querySelectorAll("#music-tabs .view-tab").forEach((tab) => {
-      tab.addEventListener("click", () => setSongView(tab.dataset.view));
-    });
-    document.querySelectorAll("#anime-tabs .view-tab").forEach((tab) => {
-      tab.addEventListener("click", () => setAnimeView(tab.dataset.view));
-    });
-    $("#music-search").addEventListener("input", (e) => { state.songQuery = e.target.value; renderSongs(); });
-    $("#anime-search").addEventListener("input", (e) => { state.animeQuery = e.target.value; renderAnime(); });
-    $("#music-sort").addEventListener("change", (e) => { state.songSort = e.target.value; renderSongs(); });
-    $("#anime-sort").addEventListener("change", (e) => { state.animeSort = e.target.value; renderAnime(); });
+    if (HAS_MUSIC) {
+      document.querySelectorAll("#music-tabs .view-tab").forEach((tab) => {
+        tab.addEventListener("click", () => setSongView(tab.dataset.view));
+      });
+      $("#music-search").addEventListener("input", (e) => { state.songQuery = e.target.value; renderSongs(); });
+      $("#music-sort").addEventListener("change", (e) => { state.songSort = e.target.value; renderSongs(); });
+    }
+    if (HAS_ANIME) {
+      document.querySelectorAll("#anime-tabs .view-tab").forEach((tab) => {
+        tab.addEventListener("click", () => setAnimeView(tab.dataset.view));
+      });
+      $("#anime-search").addEventListener("input", (e) => { state.animeQuery = e.target.value; renderAnime(); });
+      $("#anime-sort").addEventListener("change", (e) => { state.animeSort = e.target.value; renderAnime(); });
+    }
     renderAll();
     loadRatings();
     initReveal();
