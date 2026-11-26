@@ -10,7 +10,7 @@
     },
     "collection": {
       ".read": true,
-      ".write": "auth != null && auth.token.email == 'THAY_EMAIL_CHU_WEB@example.com'"
+      ".write": "auth != null && auth.token.email == 'fghrtyu1203@gmail.com'"
     }
   }
 }

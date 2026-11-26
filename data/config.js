@@ -13,7 +13,7 @@ window.SITE_CONFIG = {
   collectionPath: "collection",
   // Web API key (public) from Firebase Console → Project settings → Your apps.
   // Leave empty to keep the old local-only editing mode.
-  authApiKey: "",
+  authApiKey: "AIzaSyDZWl63Bl1eQgQGolMR4_Y_gQNAY469TlM",
   // Owner email must also be written into firebase/rules.json (auth.token.email).
-  ownerEmail: ""
+  ownerEmail: "fghrtyu1203@gmail.com"
 };
