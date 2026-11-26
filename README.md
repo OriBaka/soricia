@@ -59,6 +59,12 @@ Lưu ý: ảnh trong IndexedDB chỉ hiển thị trên **thiết bị đã thê
 
 Nếu sau này bạn bật Blaze: tạo bucket Storage, vào Storage → Rules dán `firebase/storage.rules` → **Publish**, rồi điền tên bucket vào `storageBucket` trong `data/config.js`. Ảnh mới sẽ tự đẩy lên `covers/...`; nếu upload lỗi thì vẫn rơi về IndexedDB.
 
+### Nhóm C — gọn và an toàn hơn
+- Ảnh tự thêm được **nén JPEG tối đa 1200px** trước khi lưu vào IndexedDB (hoặc upload lên Storage nếu sau này bật Blaze).
+- Nút **🧹 Dọn ảnh cũ không dùng** trong tab Dữ liệu xoá các ảnh IndexedDB không còn được danh sách hiện tại hay bản sao lưu tham chiếu — nhớ bấm sau khi xoá nhiều bài/anime có ảnh.
+- Khi thêm lẻ, web báo ngay nếu trùng tên + nghệ sĩ/tên phụ với mục đã có; vẫn cho phép sửa chính mục đó.
+- **Nhật ký chủ web** ghi lại thêm/sửa/xoá/đổi trạng thái/thêm hàng loạt/nhập dữ liệu/khôi phục/đăng lên web/dọn ảnh, kèm `updatedAt` trên từng mục. Nhật ký **chỉ lưu trong trình duyệt của chủ web** và chỉ hiện trong tab Dữ liệu sau khi đăng nhập — không đẩy lên Firebase, nên khách xem thường không thấy. Tối đa 60 dòng gần nhất, có nút xoá.
+
 ### Trạng thái “Chưa xem” và điểm tác giả trống
 - Anime có thêm trạng thái **Chưa xem** (mặc định cho mục mới), cạnh `Đang xem` và `Đã xem`. Chip lọc và nút đổi nhanh trên card đều có cả ba trạng thái, bấm nhiều lần sẽ xoay vòng `Chưa xem → Đang xem → Đã xem → Chưa xem`, luôn có **Hoàn tác**.
 - Ô **Điểm /10** của bài hát/anime có thể để trống — hiểu là **“chưa chấm”**, hiển thị `—`. Điểm trống không tính vào điểm trung bình và được xếp cuối khi chọn sort “Điểm cao nhất”.

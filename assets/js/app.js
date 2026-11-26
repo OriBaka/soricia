@@ -11,6 +11,7 @@
   const STORAGE_KEY = "soricia.collection.v1";
   const VERSION_KEY = "soricia.collection.version";
   const BACKUP_KEY = "soricia.collection.backup.v1";
+  const HISTORY_KEY = "soricia.owner.history.v1";
 
   const CONFIG = window.SITE_CONFIG || {};
   const FIREBASE_URL = String(CONFIG.firebaseUrl || "").replace(/\/+$/, "");
@@ -95,21 +96,23 @@
 
   async function putImage(dataUrl) {
     let ref = dataUrl;
+    let prepared = dataUrl;
+    try { prepared = (await compressDataUrl(dataUrl)) || dataUrl; } catch (e) { /* giữ ảnh gốc */ }
     try {
       const key = "img-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
       const db = await openImageDb();
       await new Promise((resolve, reject) => {
         const tx = db.transaction(IDB_STORE, "readwrite");
-        tx.objectStore(IDB_STORE).put(dataUrl, key);
+        tx.objectStore(IDB_STORE).put(prepared, key);
         tx.oncomplete = resolve;
         tx.onerror = () => reject(tx.error);
       });
       ref = "idb:" + key;
-      imageCache.set(ref, dataUrl);
+      imageCache.set(ref, prepared);
     } catch (e) { /* IndexedDB bị chặn: vẫn giữ data URL */ }
-    const uploaded = await uploadToStorage(dataUrl);
+    const uploaded = await uploadToStorage(prepared);
     if (uploaded) {
-      imageCache.set(uploaded, dataUrl);
+      imageCache.set(uploaded, prepared);
       return uploaded;
     }
     return ref;
@@ -127,6 +130,42 @@
       if (value) { imageCache.set(ref, value); return value; }
     } catch (e) { /* ignore */ }
     return null;
+  }
+
+  async function cleanupUnusedImages() {
+    if (!OWNER_MODE) { toast("Chỉ chủ web mới dọn được ảnh."); return; }
+    try {
+      const used = new Set();
+      const scan = (value) => {
+        if (typeof value === "string") {
+          if (value.startsWith("idb:")) used.add(value.slice(4));
+        } else if (Array.isArray(value)) value.forEach(scan);
+        else if (value && typeof value === "object") Object.values(value).forEach(scan);
+      };
+      scan({ songs, anime });
+      try { scan(JSON.parse(localStorage.getItem(BACKUP_KEY) || "null")); } catch (e) { /* bỏ qua bản sao hỏng */ }
+      imageCache.forEach((_, ref) => { if (ref.startsWith("idb:")) used.add(ref.slice(4)); });
+      const db = await openImageDb();
+      const keys = await new Promise((resolve, reject) => {
+        const req = db.transaction(IDB_STORE, "readonly").objectStore(IDB_STORE).getAllKeys();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => reject(req.error);
+      });
+      const stale = keys.filter((key) => typeof key === "string" && key.startsWith("img-") && !used.has(key));
+      if (!stale.length) { toast("Không có ảnh cũ để dọn."); return; }
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(IDB_STORE, "readwrite");
+        const store = tx.objectStore(IDB_STORE);
+        stale.forEach((key) => store.delete(key));
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+      });
+      stale.forEach((key) => imageCache.delete("idb:" + key));
+      recordHistory("cleanup", "images", stale.length + " ảnh");
+      toast("Đã dọn " + stale.length + " ảnh cũ không dùng.");
+    } catch (e) {
+      toast("Không dọn được ảnh: " + e.message);
+    }
   }
 
   function isNew(item) {
@@ -470,6 +509,7 @@
     if (publish) publish.hidden = !OWNER_MODE;
     const status = $("#auth-status");
     if (status && !OWNER_MODE) { status.hidden = true; status.textContent = ""; }
+    renderHistory();
   }
 
   function findLinkedItem(kind, key) {
@@ -784,6 +824,46 @@
     el.classList.add("is-visible");
     clearTimeout(toast.timer);
     toast.timer = setTimeout(() => el.classList.remove("is-visible"), actionLabel ? 8000 : 2800);
+  }
+
+  const HISTORY_LABELS = {
+    add: "Thêm", edit: "Sửa", delete: "Xoá", restore: "Khôi phục", status: "Đổi trạng thái",
+    bulk: "Thêm hàng loạt", import: "Nhập dữ liệu", reset: "Về dữ liệu gốc",
+    publish: "Đăng lên web", cleanup: "Dọn ảnh"
+  };
+
+  function loadHistory() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) { return []; }
+  }
+
+  function recordHistory(action, kind, title) {
+    if (!OWNER_MODE) return; // nhật ký chỉ dành cho chủ web, không đẩy lên Firebase
+    try {
+      const entries = loadHistory();
+      entries.unshift({ at: new Date().toISOString(), action, kind, title });
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(entries.slice(0, 60)));
+    } catch (e) { /* bỏ qua nếu bộ nhớ đầy */ }
+    renderHistory();
+  }
+
+  function renderHistory() {
+    const box = $("#history-box");
+    const list = $("#history-list");
+    if (!box || !list) return;
+    box.hidden = !OWNER_MODE;
+    if (!OWNER_MODE) { list.textContent = ""; return; }
+    const entries = loadHistory();
+    list.innerHTML = entries.length
+      ? entries.map((entry) => {
+        const when = new Date(entry.at);
+        const time = Number.isFinite(when.getTime()) ? when.toLocaleString("vi-VN") : "—";
+        return `<p><time>${esc(time)}</time> · ${esc(HISTORY_LABELS[entry.action] || entry.action)} `
+          + `${esc(entry.kind || "")} <b>${esc(entry.title || "")}</b></p>`;
+      }).join("")
+      : "<p>Chưa có thay đổi nào được ghi lại.</p>";
   }
 
   function loadPlayerPos() {
@@ -1406,7 +1486,7 @@
     const list = kind === "song" ? songs : anime;
     const addedAt = new Date().toISOString();
     const items = rows.map((row, i) => ({
-      ...row, id: uid(kind), index: list.length + i, rank: list.length + i + 1, addedAt
+      ...row, id: uid(kind), index: list.length + i, rank: list.length + i + 1, addedAt, updatedAt: addedAt
     }));
     const next = [...list, ...items];
     const collection = kind === "song" ? { songs: next, anime } : { songs, anime: next };
@@ -1432,6 +1512,7 @@
     state[prefix + "Genre"] = "Tất cả";
     const search = $("#" + prefix + "-search");
     if (search) search.value = "";
+    recordHistory("bulk", kind, items.length + (kind === "song" ? " bài hát" : " anime"));
     renderAll();
     $("#bulk-input").value = "";
     renderBulkPreview();
@@ -1545,6 +1626,7 @@
       index: old ? old.index : list.length,
       rank: old ? old.rank : list.length + 1,
       addedAt: old ? (old.addedAt || null) : new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       title,
       genre,
       score: normalizeScore($("#" + type + "-score").value),
@@ -1559,6 +1641,11 @@
       item.alt = $("#anime-alt").value.trim() || null;
       item.episodes = numberOrNull("anime-episodes");
       item.status = $("#anime-status").value;
+    }
+    const duplicate = list.find((x) => x.id !== editingId && itemKey(x, type) === itemKey(item, type));
+    if (duplicate) {
+      formError(type, (type === "song" ? "Bài hát" : "Anime") + " này đã có trong danh sách rồi.", type + "-title");
+      return;
     }
     const next = pos >= 0 ? list.map((x, i) => i === pos ? item : x) : [...list, item];
     const collection = type === "song" ? { songs: next, anime } : { songs, anime: next };
@@ -1590,6 +1677,7 @@
     const search = $("#" + prefix + "-search");
     if (search) search.value = "";
     justVoted[type].clear();
+    recordHistory(pos >= 0 ? "edit" : "add", type, title);
     renderAll();
     resetForm(type);
     toast(AUTH_ENABLED
@@ -1621,6 +1709,7 @@
       if (type === "song") songs = next;
       else anime = next;
     }
+    recordHistory("delete", type, item.title);
     renderAll();
     const undo = async () => {
       const restore = type === "song" ? { songs: previous, anime } : { songs, anime: previous };
@@ -1640,6 +1729,7 @@
         if (type === "song") songs = previous;
         else anime = previous;
       }
+      recordHistory("restore", type, item.title);
       renderAll();
       toast(AUTH_ENABLED ? "Đã khôi phục trên web." : "Đã hoàn tác.");
     };
@@ -1654,7 +1744,8 @@
     const currentStatus = animeStatus(item);
     const nextStatus = currentStatus === "Chưa xem" ? "Đang xem"
       : currentStatus === "Đang xem" ? "Đã xem" : "Chưa xem";
-    const next = anime.map((x) => x.id === id ? { ...x, status: nextStatus } : x);
+    const now = new Date().toISOString();
+    const next = anime.map((x) => x.id === id ? { ...x, status: nextStatus, updatedAt: now } : x);
     const collection = { songs, anime: next };
     if (AUTH_ENABLED) {
       currentVersion = new Date().toISOString();
@@ -1666,6 +1757,7 @@
       if (!save(collection)) { toast("Không lưu được thay đổi trong trình duyệt."); return; }
       anime = next;
     }
+    recordHistory("status", "anime", item.title + " → " + nextStatus);
     renderAll();
     const undo = async () => {
       const restore = { songs, anime: previous };
@@ -1679,6 +1771,7 @@
         if (!save(restore)) return;
         anime = previous;
       }
+      recordHistory("restore", "anime", item.title);
       renderAll();
       toast(AUTH_ENABLED ? "Đã khôi phục trên web." : "Đã hoàn tác.");
     };
@@ -1874,6 +1967,7 @@
         try {
           await pushRemoteCollection();
           save();
+          recordHistory("publish", "data", "Firebase");
           toast("Đã đăng danh sách hiện tại lên web.");
         } catch (e) {
           toast("Không đăng được: " + e.message);
@@ -1980,6 +2074,14 @@
 
     $("#export-package").addEventListener("click", exportUpdatePackage);
     $("#health-check").addEventListener("click", runHealthCheck);
+    $("#cleanup-images").addEventListener("click", cleanupUnusedImages);
+    $("#history-clear").addEventListener("click", () => {
+      if (!OWNER_MODE) return;
+      if (!window.confirm("Xoá nhật ký chủ web trên thiết bị này?")) return;
+      try { localStorage.removeItem(HISTORY_KEY); } catch (e) { /* ignore */ }
+      renderHistory();
+      toast("Đã xoá nhật ký.");
+    });
 
     const dailyPick = $("#daily-pick");
     if (dailyPick) dailyPick.addEventListener("click", () => {
@@ -2037,6 +2139,7 @@
           await stashDataImages();
           await hydrateImageCache();
           save(); renderAll();
+          recordHistory("import", "data", "từ file JSON");
           toast("Đã nhập dữ liệu thành công.");
         } catch (err) {
           toast("File JSON không hợp lệ.");
@@ -2058,6 +2161,7 @@
         songs = normalize(parsed.songs, "song");
         anime = normalize(parsed.anime, "anime");
         save(); renderAll();
+        recordHistory("restore", "data", "bản sao lưu");
         toast("Đã khôi phục bản sao lưu.");
       } catch (e) {
         toast("Bản sao lưu không hợp lệ.");
@@ -2070,6 +2174,7 @@
       songs = normalize(SEED.songs, "song");
       anime = normalize(SEED.anime, "anime");
       save(); renderAll();
+      recordHistory("reset", "data", "dữ liệu gốc");
       toast("Đã khôi phục dữ liệu gốc.");
     });
   }

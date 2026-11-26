@@ -6,14 +6,14 @@
   <meta name="description" content="Bảng xếp hạng nhạc và bình chọn cộng đồng của Soricia.">
   <meta name="theme-color" content="#0b0c12">
   <title>Soricia — Nhạc của tôi</title>
-  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=50">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=51">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=50">
-  <script src="data/data.js?v=50"></script>
-  <script src="data/config.js?v=50"></script>
-  <script src="assets/js/app.js?v=50" defer></script>
+  <link rel="stylesheet" href="assets/css/style.css?v=51">
+  <script src="data/data.js?v=51"></script>
+  <script src="data/config.js?v=51"></script>
+  <script src="assets/js/app.js?v=51" defer></script>
 </head>
 <body data-page="music">
   <a class="skip-link" href="#main">Chuyển đến nội dung</a>
@@ -209,8 +209,13 @@
           <div class="health-head"><b>Kiểm tra Firebase</b><button class="btn btn-ghost" id="health-check" type="button">Chạy kiểm tra</button></div>
           <pre class="health-result" id="health-result" hidden></pre>
         </div>
+        <div class="history-box owner-only" id="history-box" hidden>
+          <div class="history-head"><b>Nhật ký chủ web</b><button class="btn btn-ghost" id="history-clear" type="button">Xoá nhật ký</button></div>
+          <div class="history-list" id="history-list"></div>
+        </div>
         <label class="btn btn-ghost file-label" for="import-json">Nhập file JSON<input type="file" id="import-json" accept="application/json,.json"></label>
         <button class="btn btn-ghost" id="restore-backup" type="button">Khôi phục bản cũ trong trình duyệt</button>
+        <button class="btn btn-ghost" id="cleanup-images" type="button">🧹 Dọn ảnh cũ không dùng</button>
         <button class="btn btn-danger" id="reset-data" type="button">Khôi phục dữ liệu gốc từ data.js</button>
         <div class="bulk-box">
           <p class="data-intro">Thêm hàng loạt — mỗi dòng một mục, cách nhau bằng dấu <code>|</code>.</p>
