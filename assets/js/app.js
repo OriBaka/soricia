@@ -21,7 +21,7 @@
   const MY_ANIME_VOTES_KEY = "soricia.my.anime.votes";
   const OWNER_KEY = "soricia.owner.mode";
   const AUTH_KEY = "soricia.auth";
-  const AUTH_BASE = "https://identitytoolkit.googleapis.com/v1/accounts";
+  const AUTH_BASE = "https://identitytoolkit.googleapis.com/v1";
   const PLAYER_POS_KEY = "soricia.player.pos";
   const TIE_KEY = "soricia.rank.ties";
   let auth = loadAuth();
