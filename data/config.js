@@ -9,5 +9,11 @@
  */
 window.SITE_CONFIG = {
   firebaseUrl: "https://soricia-default-rtdb.firebaseio.com",
-  votesPath: "votes"
+  votesPath: "votes",
+  collectionPath: "collection",
+  // Web API key (public) from Firebase Console → Project settings → Your apps.
+  // Leave empty to keep the old local-only editing mode.
+  authApiKey: "",
+  // Owner email must also be written into firebase/rules.json (auth.token.email).
+  ownerEmail: ""
 };

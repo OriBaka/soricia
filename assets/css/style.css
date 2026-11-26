@@ -677,3 +677,10 @@ body[data-page="anime"] .showcase-card {
   background: linear-gradient(90deg, var(--accent), var(--violet));
   transition: width .3s ease;
 }
+
+/* Đăng nhập chủ web — chỉ hiện trong bảng Quản lý. */
+.auth-box {
+  display: grid; gap: 10px; margin-bottom: 18px; padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+.auth-box .data-intro { margin: 0 0 2px; }
