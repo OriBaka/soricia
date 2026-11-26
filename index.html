@@ -6,14 +6,14 @@
   <meta name="description" content="Bảng xếp hạng nhạc và bình chọn cộng đồng của Soricia.">
   <meta name="theme-color" content="#0b0c12">
   <title>Soricia — Khám phá & chấm điểm nhạc</title>
-  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=52">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=53">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=52">
-  <script src="data/data.js?v=52"></script>
-  <script src="data/config.js?v=52"></script>
-  <script src="assets/js/app.js?v=52" defer></script>
+  <link rel="stylesheet" href="assets/css/style.css?v=53">
+  <script src="data/data.js?v=53"></script>
+  <script src="data/config.js?v=53"></script>
+  <script src="assets/js/app.js?v=53" defer></script>
 </head>
 <body data-page="music">
   <a class="skip-link" href="#main">Chuyển đến nội dung</a>
@@ -30,6 +30,9 @@
         <a href="index.html" aria-current="page">Âm nhạc</a>
         <a href="anime.html">Anime</a>
       </nav>
+      <button class="account-btn" id="account-btn" type="button" aria-haspopup="dialog" aria-controls="account-modal">
+        <span aria-hidden="true">👤</span><span id="account-label">Đăng nhập</span>
+      </button>
       <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Đổi giao diện sáng/tối" title="Đổi giao diện">
         <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.4 14.5A8.6 8.6 0 0 1 9.5 3.6 8.6 8.6 0 1 0 20.4 14.5Z"/></svg>
         <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.4M12 19.6V22M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M2 12h2.4M19.6 12H22M4.9 19.1l1.7-1.7M17.4 6.6l1.7-1.7"/></svg>
@@ -263,6 +266,38 @@
     <span id="remote-banner-text">Có dữ liệu mới trên Firebase.</span>
     <button type="button" id="remote-reload">Tải bản mới</button>
     <button type="button" id="remote-dismiss" aria-label="Bỏ qua">×</button>
+  </div>
+  <div class="modal" id="account-modal" hidden>
+    <div class="modal-backdrop" data-close-account></div>
+    <div class="modal-box account-box" role="dialog" aria-modal="true" aria-labelledby="account-title">
+      <div class="modal-head"><h2 id="account-title">Tài khoản Soricia</h2><button type="button" id="account-close" aria-label="Đóng">×</button></div>
+      <p class="account-note" id="account-hint">Tạo tài khoản để bình luận và gửi điểm. Những phiếu bạn đã vote trước đó sẽ tự động chuyển sang tài khoản — không bị mất.</p>
+      <div class="field"><label for="account-email">Email</label><input id="account-email" type="email" autocomplete="username" placeholder="ban@example.com"></div>
+      <div class="field"><label for="account-password">Mật khẩu</label><input id="account-password" type="password" autocomplete="current-password" placeholder="Ít nhất 6 ký tự"></div>
+      <p class="form-status" id="account-status" hidden></p>
+      <div class="account-actions">
+        <button class="btn btn-primary" id="account-signup" type="button">Tạo tài khoản</button>
+        <button class="btn btn-ghost" id="account-signin" type="button">Đăng nhập</button>
+        <button class="btn btn-ghost" id="account-signout" type="button" hidden>Đăng xuất</button>
+      </div>
+    </div>
+  </div>
+  <div class="modal" id="comment-modal" hidden>
+    <div class="modal-backdrop" data-close-comment></div>
+    <div class="modal-box comment-box" role="dialog" aria-modal="true" aria-labelledby="comment-title">
+      <div class="modal-head"><h2 id="comment-title">Bình luận</h2><button type="button" id="comment-close" aria-label="Đóng">×</button></div>
+      <p class="comment-sub" id="comment-sub"></p>
+      <div class="comment-list" id="comment-list"></div>
+      <form id="comment-form" hidden>
+        <textarea id="comment-text" rows="3" maxlength="500" placeholder="Viết bình luận của bạn…"></textarea>
+        <p class="form-status" id="comment-status" hidden></p>
+        <button class="btn btn-primary" id="comment-submit" type="submit">Gửi bình luận</button>
+      </form>
+      <div class="comment-login" id="comment-login" hidden>
+        <p>Đăng nhập hoặc tạo tài khoản để tham gia bình luận.</p>
+        <button class="btn btn-primary" id="comment-account-btn" type="button">Đăng nhập / Tạo tài khoản</button>
+      </div>
+    </div>
   </div>
 </body>
 </html>

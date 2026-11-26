@@ -2,9 +2,23 @@
   "rules": {
     "votes": {
       ".read": true,
-      "$song": {
+      "$item": {
         "$voter": {
-          ".write": "auth == null && newData.isNumber() && newData.val() >= 1 && newData.val() <= 10"
+          ".write": "(auth == null && newData.exists() && newData.isNumber() && newData.val() >= 1 && newData.val() <= 10) || (auth != null && newData.exists() && auth.uid == $voter && newData.isNumber() && newData.val() >= 1 && newData.val() <= 10) || (auth != null && !newData.exists() && root.child('users').child(auth.uid).child('legacyToken').val() == $voter)"
+        }
+      }
+    },
+    "users": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": "auth != null && auth.uid == $uid && newData.child('email').val() == auth.token.email"
+      }
+    },
+    "comments": {
+      ".read": true,
+      "$item": {
+        "$id": {
+          ".write": "auth != null && ((newData.exists() && newData.child('uid').val() == auth.uid && newData.child('text').isString() && newData.child('text').val().length > 0 && newData.child('text').val().length <= 500) || (!newData.exists() && data.child('uid').val() == auth.uid))"
         }
       }
     },

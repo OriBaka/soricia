@@ -75,6 +75,12 @@ Nếu sau này bạn bật Blaze: tạo bucket Storage, vào Storage → Rules d
 - Chip lọc trạng thái anime hiện kèm **số lượng** (`Đã xem 12`, `Đang xem 3`). Trên mỗi card anime có nút đổi nhanh `▶ Đang xem` / `✓ Đã xem xong`; chủ web đổi là đăng luôn lên Firebase và có **Hoàn tác**.
 - Trang nhạc có card **🎧 Bài hát hôm nay**: chọn theo ngày cố định (UTC), ai mở cùng ngày thấy cùng một bài. Nút 🔗 copy link dạng `?daily=YYYY-MM-DD#item=song:...` để chia sẻ đúng bài của đúng ngày; bấm vào card sẽ mở trình phát YouTube.
 
+### Tài khoản người xem, bình luận và phiếu vote
+- Trên đầu trang có nút **👤 Đăng nhập**. Khách tạo tài khoản (Email/Password) để **bình luận bài hát/anime** và **gửi điểm**; mỗi tài khoản chỉ một phiếu cho mỗi mục, hạn chế spam vote.
+- Khi tạo/đăng nhập tài khoản, web tự động **chuyển các phiếu ẩn danh đã vote trước đó sang UID tài khoản** và xoá bản ẩn danh — điểm không bị mất, cũng không bị tính trùng. Muốn tính năng này chạy được, Regina phải dán nội dung cập nhật của `firebase/rules.json` vào Firebase Console → Realtime Database → **Rules → Publish**.
+- Bình luận là công khai (ai cũng đọc được), nhưng chỉ tài khoản đăng nhập mới gửi và chỉ người viết mới xoá được bình luận của mình. Tối đa 500 ký tự.
+- Tài khoản người xem **không cấp quyền quản lý**; quyền sửa danh sách vẫn chỉ thuộc email chủ web trong `?admin=1`.
+
 ### Nhóm A — chắc chắn trước khi mở rộng
 - Trong tab **Dữ liệu** của bảng quản lý có nút **📦 Gói cập nhật cho Drive**: tải về file zip gồm `data.js` + các ảnh bìa **Regina tự thêm** (đã nén JPEG tối đa 1200px) + `README.txt`. Regina chỉ cần gửi zip này qua Google Drive, Lucia giải nén đè vào repo là ảnh hiển thị public, không cần Storage trả phí.
 - Cũng trong tab **Dữ liệu**, nút **Chạy kiểm tra** báo trạng thái đọc công khai, số mục trên web/Firebase, lần đồng bộ cuối và thử ghi một key tạm để xác nhận Rules đã Publish và đúng email chủ web. Key tạm tự xoá ngay sau khi thử.
