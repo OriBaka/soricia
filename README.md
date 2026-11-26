@@ -24,10 +24,11 @@ Người xem bình thường **chỉ thấy nút chấm điểm**. Để hiện 
 3. Chọn ảnh bìa/poster nếu có — ảnh tự động nén trước khi lưu. Với anime, bấm **✦ Tìm poster gợi ý** để lấy ảnh từ Jikan theo tên anime, rồi đổi sang ảnh khác nếu muốn.
 4. Bấm **Thêm** hoặc **Lưu thay đổi**. Nút **✎ Sửa / ✕ Xoá** luôn hiện trên từng bài/anime — bấm **✎ Sửa** để đổi điểm, ghi chú hoặc thêm ảnh cho mục đã có. Sau khi xoá, toast hiện nút **Hoàn tác** trong 8 giây để khôi phục.
 
-Dữ liệu được lưu trong **trình duyệt của thiết bị đó** (`localStorage`). Ảnh bìa có sẵn nằm riêng trong `assets/covers/` và `data/data.js` chỉ giữ đường dẫn tới file, nên file dữ liệu nhẹ và web không bị lỗi “bộ nhớ đầy” vì ảnh gốc. Ảnh bạn tự tải lên vẫn được lưu và có thể chiếm chỗ — nếu lưu quá nhiều ảnh lớn, hãy tải file JSON về rồi xoá bớt. Để mang sang thiết bị khác hoặc đưa lên GitHub, mở tab **Dữ liệu**:
+Dữ liệu được lưu trong **trình duyệt của thiết bị đó** (`localStorage`). Ảnh bìa có sẵn nằm riêng trong `assets/covers/` và `data/data.js` chỉ giữ đường dẫn tới file. Ảnh bạn tự tải lên được cất trong **IndexedDB**, localStorage chỉ giữ mã `idb:<key>` nên không vướng hạn mức ~5MB; khi đẩy lên Firebase hoặc xuất file thì ảnh được nhét lại thành `data:image/...` đầy đủ. Để mang sang thiết bị khác hoặc đưa lên GitHub, mở tab **Dữ liệu**:
 
 - **Tải file JSON**: sao lưu / nhập lại ở thiết bị khác.
 - **Tải file data.js**: thay nội dung `data/data.js` trên GitHub, commit/push để mọi người đều thấy danh sách mới. Nếu file từ Drive còn nhét ảnh base64, chạy `node tools/extract-covers.js` để tách ảnh sang `assets/covers/` trước khi commit. File xuất ra tự gắn mốc `version` mới, nên người xem cũ sẽ tự lấy bản mới thay vì dùng dữ liệu đã lưu trong trình duyệt.
+- **Thêm hàng loạt**: dán nhiều dòng `Tên | Nghệ sĩ | YouTube | Thể loại` (nhạc) hoặc `Tên | Tên phụ | Thể loại | Năm | Số tập` (anime), bấm **Xem trước** rồi **Thêm**. Dòng trùng tên tự động bỏ qua.
 - **Khôi phục dữ liệu gốc**: quay lại nội dung hiện trong `data/data.js`.
 
 Sau khi push lên `main`, GitHub Pages tự build lại trong vài phút. Nếu vẫn thấy bản cũ, mở `https://oribaka.github.io/soricia/?new=1` hoặc ép tải lại (`Ctrl+Shift+R` / `Cmd+Shift+R`).
