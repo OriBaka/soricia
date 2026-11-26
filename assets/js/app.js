@@ -741,7 +741,7 @@
     const drafts = kind === "anime" ? animeVoteDrafts : voteDrafts;
     const view = kind === "anime" ? state.animeView : state.songView;
     if (!VOTES_ENABLED) {
-      return `<div class="song-score"><strong>${fmt(song.score)}</strong><small>điểm của tác giả</small><span class="vote-note">Bình chọn chưa được bật.</span></div>`;
+      return `<div class="song-score"><strong>${fmt(song.score)}</strong><small>điểm gốc</small><span class="vote-note">Bình chọn chưa được bật.</span></div>`;
     }
     const rating = table[key];
     const avg = rating && rating.count ? fmt(rating.avg) : "—";
@@ -753,11 +753,11 @@
       ? `<span class="stars" aria-label="${Math.round((song.score || 0) / 2)}/5 sao">${"★".repeat(Math.round((song.score || 0) / 2))}${"☆".repeat(5 - Math.round((song.score || 0) / 2))}</span>`
       : "";
     const scoreInfo = blind
-      ? `<span class="vote-note">Chấm điểm để xem điểm cộng đồng và điểm của tác giả.</span>`
+      ? `<span class="vote-note">Chấm điểm để xem điểm cộng đồng và điểm gốc.</span>`
       : `${stars}
          <strong>${avg}</strong>
          <small>điểm trung bình · ${countText}</small>
-         <div class="author-score">Điểm của tác giả: <b>${authorScore}</b></div>`;
+         <div class="author-score">Điểm gốc: <b>${authorScore}</b></div>`;
     const status = !blind && ratingsStatus === "error" ? `<span class="vote-note">Chưa tải được điểm cộng đồng.</span>` : "";
     return `
       <div class="song-score${kind === "anime" ? " anime-vote" : ""}">
@@ -1164,7 +1164,7 @@
     const empty = $("#music-empty");
     empty.hidden = items.length > 0;
     empty.textContent = songs.length === 0
-      ? "Chưa có bài hát nào. Bấm “+ Thêm bài hát” để bắt đầu nhé."
+      ? "Chưa có bài hát nào để bình chọn."
       : state.songVoteFilter === "voted" && !Object.keys(myVotes).length
         ? "Bạn chưa vote bài nào. Chuyển sang “Chưa vote” để bắt đầu nhé."
         : state.songVoteFilter === "unvoted" && Object.keys(myVotes).length >= songs.length
@@ -1181,7 +1181,7 @@
       tab.classList.toggle("is-active", active);
       tab.setAttribute("aria-selected", String(active));
     });
-    $("#anime-section-title").textContent = view === "vote" ? "Chấm điểm anime" : "Những bộ tôi đã xem";
+    $("#anime-section-title").textContent = view === "vote" ? "Chấm điểm anime" : "Những bộ anime được bình chọn";
     $("#anime-desc-rank").hidden = view === "vote";
     $("#anime-desc-vote").hidden = view !== "vote";
     const progress = $("#anime-progress");
@@ -1238,7 +1238,7 @@
     const empty = $("#anime-empty");
     empty.hidden = items.length > 0;
     empty.textContent = anime.length === 0
-      ? "Chưa có anime nào. Bấm “+ Thêm anime” để thêm tựa đầu tiên."
+      ? "Chưa có anime nào để bình chọn."
       : state.animeVoteFilter === "voted" && !Object.keys(myAnimeVotes).length
         ? "Bạn chưa vote anime nào. Chuyển sang “Chưa vote” để bắt đầu nhé."
         : state.animeVoteFilter === "unvoted" && Object.keys(myAnimeVotes).length >= anime.length

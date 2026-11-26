@@ -5,15 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Bảng xếp hạng nhạc và bình chọn cộng đồng của Soricia.">
   <meta name="theme-color" content="#0b0c12">
-  <title>Soricia — Nhạc của tôi</title>
-  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=51">
+  <title>Soricia — Khám phá & chấm điểm nhạc</title>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=52">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=51">
-  <script src="data/data.js?v=51"></script>
-  <script src="data/config.js?v=51"></script>
-  <script src="assets/js/app.js?v=51" defer></script>
+  <link rel="stylesheet" href="assets/css/style.css?v=52">
+  <script src="data/data.js?v=52"></script>
+  <script src="data/config.js?v=52"></script>
+  <script src="assets/js/app.js?v=52" defer></script>
 </head>
 <body data-page="music">
   <a class="skip-link" href="#main">Chuyển đến nội dung</a>
@@ -45,9 +45,9 @@
     <section class="hero" id="top">
       <div class="container hero-grid">
         <div class="hero-copy">
-          <p class="eyebrow"><span class="pulse" aria-hidden="true"></span> Nhật ký nghe · <span id="hero-year">2026</span></p>
-          <h1>Những bản nhạc<br><em>tôi nghe đi nghe lại.</em></h1>
-          <p class="hero-lead">Bảng xếp hạng Phonk theo cảm nhận riêng — không theo bất cứ bảng nào khác. Nghe nhạc và chấm điểm ngay trên trang.</p>
+          <p class="eyebrow"><span class="pulse" aria-hidden="true"></span> Bình chọn âm nhạc · <span id="hero-year">2026</span></p>
+          <h1>Khám phá nhạc<br><em>rồi cùng chấm điểm.</em></h1>
+          <p class="hero-lead">Bảng xếp hạng Phonk do cộng đồng bình chọn. Nghe thử, gửi điểm của bạn và xem điểm số thay đổi ngay trên trang.</p>
           <div class="hero-actions">
             <a class="btn btn-primary" href="#music">Khám phá âm nhạc <span aria-hidden="true">↗</span></a>
             <a class="btn btn-ghost" href="anime.html">Xem danh sách anime</a>
@@ -62,13 +62,13 @@
           </div>
           <p class="hero-hint">Gõ tên bài hát hoặc nghệ sĩ để tìm ngay trong trang.</p>
         </div>
-        <div class="hero-showcase" aria-label="Bài hát yêu thích">
+        <div class="hero-showcase" aria-label="Bài hát điểm cao nhất">
           <article class="showcase-card showcase-music">
             <div class="showcase-top"><span class="tag">BÀI HÁT SỐ 1</span><span class="score-pill" id="hero-song-score">—</span></div>
             <div class="showcase-body"><span class="showcase-index">01</span><div><h2 id="hero-song-title">Đang tải…</h2><p id="hero-song-artist"></p></div></div>
-            <div class="showcase-foot"><span id="hero-song-genre"></span><span>◉ Nghe nhiều nhất</span></div>
+            <div class="showcase-foot"><span id="hero-song-genre"></span><span>◉ Điểm cộng đồng</span></div>
           </article>
-          <div class="showcase-sticker" aria-hidden="true">rated<br>by me<span>✳</span></div>
+          <div class="showcase-sticker" aria-hidden="true">rated<br>by you<span>✳</span></div>
         </div>
       </div>
     </section>
@@ -88,7 +88,7 @@
             <p class="section-kicker">01 / Âm nhạc</p>
             <h2 id="music-title">Bài hát xếp hạng theo thể loại</h2>
             <p class="section-desc" id="music-desc-rank">Bảng xếp hạng theo <strong>điểm vote cộng đồng</strong>; mỗi bài một hạng riêng, bài cùng điểm được xếp ngẫu nhiên. Lọc theo thể loại để xem bảng riêng của từng dòng nhạc.</p>
-            <p class="section-desc vote-desc" id="music-desc-vote" hidden>Chấm điểm 1–10 cho từng bài. Điểm cộng đồng và điểm của tác giả chỉ hiện sau khi bạn gửi phiếu.</p>
+            <p class="section-desc vote-desc" id="music-desc-vote" hidden>Chấm điểm 1–10 cho từng bài. Điểm cộng đồng và điểm gốc chỉ hiện sau khi bạn gửi phiếu.</p>
           </div>
           <div class="section-side">
             <p class="section-count"><span id="music-count">0</span> bài hát</p>
@@ -113,7 +113,7 @@
           </div>
           <div class="toolbar-right">
             <label class="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/></svg><span class="sr-only">Tìm bài hát</span><input type="search" id="music-search" placeholder="Tìm bài hát hoặc nghệ sĩ…" autocomplete="off"></label>
-            <label class="select-wrap"><span class="sr-only">Sắp xếp bài hát</span><select id="music-sort"><option value="community" data-score-sort>Điểm cộng đồng</option><option value="score" data-score-sort>Điểm tác giả</option><option value="rank">Thứ hạng có sẵn</option><option value="title">Tên A–Z</option><option value="year">Năm mới nhất</option><option value="new">Mới thêm</option></select></label>
+            <label class="select-wrap"><span class="sr-only">Sắp xếp bài hát</span><select id="music-sort"><option value="community" data-score-sort>Điểm cộng đồng</option><option value="score" data-score-sort>Điểm gốc</option><option value="rank">Thứ hạng có sẵn</option><option value="title">Tên A–Z</option><option value="year">Năm mới nhất</option><option value="new">Mới thêm</option></select></label>
           </div>
         </div>
         <ol class="song-list" id="music-list" aria-live="polite"></ol>
@@ -159,7 +159,7 @@
         </div>
         <div class="field"><label for="song-year">Năm phát hành</label><input id="song-year" type="number" min="1900" max="2100" placeholder="2025" inputmode="numeric"></div>
         <div class="field"><label for="song-youtube">Link YouTube (để nút Nghe)</label><input id="song-youtube" placeholder="https://youtu.be/... hoặc ID video" maxlength="200"></div>
-        <div class="field"><label for="song-note">Ghi chú cá nhân</label><textarea id="song-note" rows="3" maxlength="300" placeholder="Nghe trên đường về nhà…"></textarea></div>
+        <div class="field"><label for="song-note">Giới thiệu ngắn</label><textarea id="song-note" rows="3" maxlength="300" placeholder="Giới thiệu về bài hát…"></textarea></div>
         <div class="field">
           <label>Ảnh bìa</label>
           <div class="image-drop">
@@ -186,7 +186,7 @@
           <div class="field"><label for="anime-episodes">Số tập</label><input id="anime-episodes" type="number" min="1" max="2000" placeholder="13" inputmode="numeric"></div>
         </div>
         <div class="field"><label for="anime-status">Trạng thái</label><select id="anime-status"><option>Chưa xem</option><option>Đang xem</option><option>Đã xem</option></select></div>
-        <div class="field"><label for="anime-note">Ghi chú cá nhân</label><textarea id="anime-note" rows="3" maxlength="300" placeholder="Cảm nghĩ sau khi xem…"></textarea></div>
+        <div class="field"><label for="anime-note">Giới thiệu ngắn</label><textarea id="anime-note" rows="3" maxlength="300" placeholder="Giới thiệu về anime…"></textarea></div>
         <div class="field">
           <label>Ảnh poster</label>
           <div class="image-drop">
@@ -254,7 +254,7 @@
 
   <footer class="site-footer">
     <div class="container footer-inner">
-      <div><span class="brand-name">SORICIA<span class="brand-dot">.</span></span><p>Điểm số của riêng tôi, dành cho những thứ tôi nghe và xem.</p></div>
+      <div><span class="brand-name">SORICIA<span class="brand-dot">.</span></span><p>Nơi mọi người cùng khám phá, chấm điểm nhạc và anime.</p></div>
       <div class="footer-links"><a href="#top">Lên đầu trang ↑</a></div>
     </div>
     <div class="container footer-bottom"><span>© <span id="footer-year">2026</span> Soricia</span></div>
