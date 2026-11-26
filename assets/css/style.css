@@ -1,5 +1,5 @@
 /* =========================================================
-   Soricia — personal music & anime rankings
+   Soricia — community music & anime ratings
    ========================================================= */
 :root {
   --bg: #0b0c12;
@@ -816,3 +816,52 @@ body[data-page="anime"] .showcase-card {
 }
 .history-list time { color: var(--violet); font-weight: 700; }
 .history-list b { color: var(--text); }
+
+/* Tài khoản người xem và bình luận cộng đồng. */
+.account-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 11px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--border-strong); background: transparent;
+  color: var(--muted); font-size: 12px; font-weight: 700;
+}
+.account-btn:hover { color: var(--accent); border-color: var(--accent); }
+.modal { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 16px; }
+.modal[hidden] { display: none; }
+.modal-backdrop { position: absolute; inset: 0; background: rgba(4, 5, 10, .72); backdrop-filter: blur(4px); }
+.modal-box {
+  position: relative; width: min(440px, 100%); max-height: 88vh; overflow: auto;
+  padding: 20px; border-radius: 18px; background: var(--surface);
+  border: 1px solid var(--border-strong); box-shadow: var(--shadow);
+}
+.modal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.modal-head h2 { margin: 0; font-size: 18px; }
+.modal-head button {
+  width: 30px; height: 30px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: 18px;
+}
+.account-note, .comment-sub { margin: 10px 0 14px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.account-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.account-actions .btn { flex: 1; min-width: 120px; }
+.comment-list { display: grid; gap: 10px; max-height: 280px; overflow: auto; margin: 12px 0; }
+.comment-item { padding: 10px 12px; border-radius: 12px; background: var(--surface-2); font-size: 12px; line-height: 1.5; }
+.comment-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--violet); font-size: 10px; font-weight: 800; }
+.comment-meta button { border: 0; background: transparent; color: var(--muted); cursor: pointer; font-size: 11px; }
+.comment-meta button:hover { color: var(--pink); }
+.comment-item p { margin: 6px 0 0; white-space: pre-wrap; word-break: break-word; }
+#comment-text {
+  width: 100%; padding: 10px 12px; border-radius: 10px; resize: vertical;
+  border: 1px solid var(--border-strong); background: var(--surface-2); color: var(--text);
+  font: inherit; font-size: 13px;
+}
+#comment-form .btn { margin-top: 8px; width: 100%; }
+.comment-login { display: grid; gap: 10px; margin-top: 12px; }
+.comment-login p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.comment-toggle { color: var(--violet) !important; }
+.comment-count {
+  margin-left: 4px; padding: 1px 5px; border-radius: 99px;
+  background: color-mix(in srgb, var(--violet) 24%, transparent); font-size: 9px;
+}
+@media (max-width: 620px) {
+  .account-btn span:last-child { display: none; }
+  .modal-box { padding: 16px; }
+}

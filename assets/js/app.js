@@ -27,10 +27,16 @@
   const MY_ANIME_VOTES_KEY = "soricia.my.anime.votes";
   const OWNER_KEY = "soricia.owner.mode";
   const AUTH_KEY = "soricia.auth";
+  const VIEWER_AUTH_KEY = "soricia.viewer.auth.v1";
+  const COMMENTS_PATH = "comments";
+  const USERS_PATH = "users";
   const AUTH_BASE = "https://identitytoolkit.googleapis.com/v1";
   const PLAYER_POS_KEY = "soricia.player.pos";
   const TIE_KEY = "soricia.rank.ties";
   let auth = loadAuth();
+  let viewerAuth = loadViewerAuth();
+  let commentsByItem = {};
+  let activeComment = null;
   let OWNER_MODE = initOwnerMode();
   let managerVisible = OWNER_MODE || (new URLSearchParams(window.location.search).get("admin") !== null && new URLSearchParams(window.location.search).get("admin") !== "0");
   let ratings = {};
@@ -462,6 +468,308 @@
     return auth.idToken;
   }
 
+  function loadViewerAuth() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(VIEWER_AUTH_KEY) || "null");
+      return raw && raw.idToken ? raw : null;
+    } catch (e) { return null; }
+  }
+
+  function saveViewerAuth() {
+    try {
+      if (viewerAuth) localStorage.setItem(VIEWER_AUTH_KEY, JSON.stringify(viewerAuth));
+      else localStorage.removeItem(VIEWER_AUTH_KEY);
+    } catch (e) { /* ignore */ }
+  }
+
+  function viewerSignedIn() { return !!(viewerAuth && viewerAuth.idToken); }
+
+  async function ensureViewerToken() {
+    if (!viewerSignedIn()) throw new Error("Chưa đăng nhập tài khoản người xem.");
+    if (viewerAuth.expiresAt && viewerAuth.expiresAt - 60000 <= Date.now()) {
+      if (!viewerAuth.refreshToken) throw new Error("Phiên đăng nhập hết hạn. Đăng nhập lại nhé.");
+      const data = await authRequest("accounts:refreshToken", {
+        grant_type: "refresh_token", refresh_token: viewerAuth.refreshToken
+      });
+      viewerAuth.idToken = data.id_token || data.idToken;
+      viewerAuth.expiresAt = Date.now() + (Number(data.expires_in || data.expiresIn) || 3600) * 1000;
+      saveViewerAuth();
+    }
+    return viewerAuth.idToken;
+  }
+
+  async function voteIdentity() {
+    return viewerSignedIn() ? viewerAuth.localId : voterToken();
+  }
+
+  function applyViewerUi() {
+    const label = $("#account-label");
+    const signout = $("#account-signout");
+    if (label) label.textContent = viewerSignedIn() ? (viewerAuth.email || "Tài khoản").split("@")[0] : "Đăng nhập";
+    const button = $("#account-btn");
+    if (button) button.title = viewerSignedIn() ? viewerAuth.email : "Đăng nhập / tạo tài khoản để bình luận và giữ phiếu vote";
+    if (signout) signout.hidden = !viewerSignedIn();
+  }
+
+  async function saveViewerProfile() {
+    if (!viewerSignedIn()) return;
+    const token = await ensureViewerToken();
+    const profile = {
+      email: viewerAuth.email || "",
+      legacyToken: voterToken(),
+      createdAt: new Date().toISOString()
+    };
+    const res = await fetch(firebaseUrl(USERS_PATH + "/" + encodeURIComponent(viewerAuth.localId), token), {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(profile)
+    });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+  }
+
+  async function migrateAnonymousVotes() {
+    if (!viewerSignedIn()) return 0;
+    const legacy = voterToken();
+    const token = await ensureViewerToken();
+    let remote = {};
+    try {
+      const res = await fetch(firebaseUrl(VOTES_PATH));
+      if (res.ok) remote = await res.json() || {};
+    } catch (e) { remote = {}; }
+    const ids = new Set([...Object.keys(myVotes), ...Object.keys(myAnimeVotes)]);
+    Object.keys(remote).forEach((voteId) => {
+      if (remote[voteId] && typeof remote[voteId][legacy] === "number") ids.add(voteId);
+    });
+    let moved = 0;
+    for (const voteId of ids) {
+      const score = remote[voteId] && remote[voteId][legacy];
+      if (typeof score !== "number") continue;
+      const base = VOTES_PATH + "/" + encodeURIComponent(voteId) + "/";
+      const put = await fetch(firebaseUrl(base + encodeURIComponent(viewerAuth.localId), token), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(score)
+      });
+      if (!put.ok) throw new Error("HTTP " + put.status + " khi chuyển phiếu " + voteId);
+      const del = await fetch(firebaseUrl(base + encodeURIComponent(legacy), token), { method: "DELETE" });
+      if (!del.ok) throw new Error("HTTP " + del.status + " khi xoá phiếu ẩn danh " + voteId);
+      moved++;
+    }
+    return moved;
+  }
+
+  async function syncMyVotesFromServer() {
+    if (!VOTES_ENABLED) return;
+    try {
+      const res = await fetch(firebaseUrl(VOTES_PATH));
+      if (!res.ok) return;
+      const data = await res.json() || {};
+      const identity = await voteIdentity();
+      const songs = {};
+      const animeVotes = {};
+      Object.keys(data).forEach((voteId) => {
+        const value = data[voteId] && data[voteId][identity];
+        if (typeof value !== "number") return;
+        if (voteId.startsWith("anime-")) animeVotes[voteId] = value;
+        else songs[voteId] = value;
+      });
+      myVotes = songs;
+      myAnimeVotes = animeVotes;
+      persistMyVotes("song");
+      persistMyVotes("anime");
+      justVoted.song.clear();
+      justVoted.anime.clear();
+      renderAll();
+    } catch (e) { /* giữ phiếu đã có trên máy */ }
+  }
+
+  async function finishViewerAuth(isNew) {
+    applyViewerUi();
+    let moved = 0;
+    let problem = "";
+    try {
+      await saveViewerProfile();
+      moved = await migrateAnonymousVotes();
+      await syncMyVotesFromServer();
+    } catch (e) {
+      problem = e.message;
+    }
+    return { moved, problem };
+  }
+
+  async function createViewerAccount(email, password) {
+    const data = await authRequest("accounts:signUp", { email, password, returnSecureToken: true });
+    viewerAuth = {
+      idToken: data.idToken, refreshToken: data.refreshToken,
+      localId: data.localId, email: data.email || email,
+      expiresAt: Date.now() + (Number(data.expiresIn) || 3600) * 1000
+    };
+    saveViewerAuth();
+    return finishViewerAuth(true);
+  }
+
+  async function signInViewer(email, password) {
+    const data = await authRequest("accounts:signInWithPassword", { email, password, returnSecureToken: true });
+    viewerAuth = {
+      idToken: data.idToken, refreshToken: data.refreshToken,
+      localId: data.localId, email: data.email || email,
+      expiresAt: Date.now() + (Number(data.expiresIn) || 3600) * 1000
+    };
+    saveViewerAuth();
+    return finishViewerAuth(false);
+  }
+
+  function signOutViewer() {
+    viewerAuth = null;
+    saveViewerAuth();
+    applyViewerUi();
+    toast("Đã đăng xuất tài khoản người xem.");
+  }
+
+  function openAccountModal(hint) {
+    const modal = $("#account-modal");
+    if (!modal) return;
+    const note = $("#account-hint");
+    if (note) note.textContent = hint || "Tạo tài khoản để bình luận và gửi điểm. Những phiếu bạn đã vote trước đó sẽ tự động chuyển sang tài khoản — không bị mất.";
+    const status = $("#account-status");
+    if (status) { status.hidden = true; status.textContent = ""; }
+    modal.hidden = false;
+    applyViewerUi();
+  }
+
+  function closeAccountModal() {
+    const modal = $("#account-modal");
+    if (modal) modal.hidden = true;
+  }
+
+  async function loadComments() {
+    if (!VOTES_ENABLED) return;
+    try {
+      const res = await fetch(firebaseUrl(COMMENTS_PATH));
+      if (!res.ok) return;
+      const data = await res.json() || {};
+      const next = {};
+      Object.keys(data).forEach((key) => {
+        const node = data[key];
+        if (!node || typeof node !== "object") return;
+        next[key] = Object.keys(node).map((id) => ({ ...(node[id] || {}), id }))
+          .filter((comment) => comment && typeof comment.text === "string")
+          .sort((a, b) => String(a.at || "").localeCompare(String(b.at || "")));
+      });
+      commentsByItem = next;
+      renderAll();
+      if (activeComment) renderComments();
+    } catch (e) { /* giữ danh sách đã có nếu lỗi mạng */ }
+  }
+
+  function commentStatus(message) {
+    const box = $("#comment-status");
+    if (!box) return;
+    box.textContent = message || "";
+    box.hidden = !message;
+  }
+
+  function openCommentModal(kind, key, title) {
+    if (!VOTES_ENABLED) return;
+    activeComment = { kind, key, title };
+    const heading = $("#comment-title");
+    const sub = $("#comment-sub");
+    if (heading) heading.textContent = "Bình luận · " + (title || "");
+    if (sub) sub.textContent = kind === "anime" ? "Anime" : "Bài hát";
+    commentStatus("");
+    const modal = $("#comment-modal");
+    if (modal) modal.hidden = false;
+    renderComments();
+  }
+
+  function closeCommentModal() {
+    const modal = $("#comment-modal");
+    if (modal) modal.hidden = true;
+    activeComment = null;
+  }
+
+  function renderComments() {
+    if (!activeComment) return;
+    const list = $("#comment-list");
+    const form = $("#comment-form");
+    const login = $("#comment-login");
+    if (!list || !form || !login) return;
+    const entries = commentsByItem[activeComment.key] || [];
+    list.innerHTML = entries.length
+      ? entries.map((comment) => {
+        const email = String(comment.email || "Người xem");
+        const when = new Date(comment.at);
+        const time = Number.isFinite(when.getTime()) ? when.toLocaleString("vi-VN") : "";
+        const own = viewerSignedIn() && comment.uid === viewerAuth.localId;
+        return `<div class="comment-item">
+          <div class="comment-meta"><span>${esc(email.split("@")[0])} · ${esc(time)}</span>
+            ${own ? `<button type="button" data-delete-comment="${esc(comment.id)}">Xoá</button>` : ""}
+          </div>
+          <p>${esc(comment.text)}</p>
+        </div>`;
+      }).join("")
+      : '<p class="comment-sub">Chưa có bình luận nào. Hãy là người đầu tiên!</p>';
+    const signed = viewerSignedIn();
+    form.hidden = !signed;
+    login.hidden = signed;
+  }
+
+  async function postComment() {
+    if (!activeComment || !viewerSignedIn()) return;
+    commentStatus("");
+    const input = $("#comment-text");
+    const text = String(input.value || "").trim();
+    if (!text) { commentStatus("Nhập nội dung bình luận nhé."); return; }
+    if (text.length > 500) { commentStatus("Bình luận tối đa 500 ký tự."); return; }
+    const button = $("#comment-submit");
+    if (button) button.disabled = true;
+    try {
+      const token = await ensureViewerToken();
+      const id = "c-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
+      const url = firebaseUrl(COMMENTS_PATH + "/" + encodeURIComponent(activeComment.key) + "/" + encodeURIComponent(id), token);
+      const res = await fetch(url, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uid: viewerAuth.localId,
+          email: viewerAuth.email || "",
+          text,
+          at: new Date().toISOString()
+        })
+      });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      input.value = "";
+      await loadComments();
+      toast("Đã gửi bình luận.");
+    } catch (e) {
+      commentStatus("Không gửi được bình luận: " + e.message);
+    } finally {
+      if (button) button.disabled = false;
+    }
+  }
+
+  async function deleteComment(id) {
+    if (!viewerSignedIn() || !activeComment) return;
+    if (!window.confirm("Xoá bình luận này?")) return;
+    try {
+      const token = await ensureViewerToken();
+      const url = firebaseUrl(COMMENTS_PATH + "/" + encodeURIComponent(activeComment.key) + "/" + encodeURIComponent(id), token);
+      const res = await fetch(url, { method: "DELETE" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      await loadComments();
+      toast("Đã xoá bình luận.");
+    } catch (e) {
+      toast("Không xoá được bình luận: " + e.message);
+    }
+  }
+
+  function accountStatus(message) {
+    const box = $("#account-status");
+    if (!box) return;
+    box.textContent = message || "";
+    box.hidden = !message;
+  }
+
   async function signInOwner(email, password) {
     const data = await authRequest("accounts:signInWithPassword", {
       email, password, returnSecureToken: true
@@ -711,12 +1019,17 @@
 
   async function submitVote(kind, songId, score) {
     if (!VOTES_ENABLED) return;
+    if (!viewerSignedIn()) {
+      openAccountModal("Đăng nhập hoặc tạo tài khoản để gửi điểm. Phiếu bạn đã vote trước đó sẽ được giữ lại.");
+      return;
+    }
     const mine = kind === "anime" ? myAnimeVotes : myVotes;
     const drafts = kind === "anime" ? animeVoteDrafts : voteDrafts;
     const changing = mine[songId] != null;
     const voteId = songId; // voteKey() already namespaces anime entries.
     try {
-      const res = await fetch(firebaseUrl(VOTES_PATH + "/" + encodeURIComponent(voteId) + "/" + encodeURIComponent(voterToken())), {
+      const token = await ensureViewerToken();
+      const res = await fetch(firebaseUrl(VOTES_PATH + "/" + encodeURIComponent(voteId) + "/" + encodeURIComponent(viewerAuth.localId), token), {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(score)
@@ -1087,11 +1400,17 @@
   }
 
   function actionsFor(type, item) {
-    if (!OWNER_MODE) return "";
+    const key = voteKey(item, type);
+    const count = (commentsByItem[key] || []).length;
+    const commentButton = VOTES_ENABLED
+      ? `<button type="button" class="comment-toggle" data-comment-key="${esc(key)}" data-comment-kind="${type}" data-comment-title="${esc(item.title)}" aria-label="Bình luận ${esc(item.title)}">💬 Bình luận<span class="comment-count">${count}</span></button>`
+      : "";
+    if (!OWNER_MODE) return commentButton ? `<div class="item-actions">${commentButton}</div>` : "";
     return `
       <div class="item-actions">
         <button type="button" data-action="edit" data-type="${type}" data-id="${esc(item.id)}" aria-label="Sửa ${esc(item.title)}">✎ Sửa</button>
         <button type="button" class="is-danger" data-action="delete" data-type="${type}" data-id="${esc(item.id)}" aria-label="Xoá ${esc(item.title)}">✕ Xoá</button>
+        ${commentButton}
       </div>
     `;
   }
@@ -1941,6 +2260,58 @@
 
   function initManager() {
     $("#manage-btn").addEventListener("click", () => openPanel(HAS_ANIME && !HAS_MUSIC ? "anime" : "song"));
+
+    const accountBtn = $("#account-btn");
+    if (accountBtn) accountBtn.addEventListener("click", () => openAccountModal());
+    $("#account-close").addEventListener("click", closeAccountModal);
+    const accountBackdrop = document.querySelector("[data-close-account]");
+    if (accountBackdrop) accountBackdrop.addEventListener("click", closeAccountModal);
+    $("#account-signup").addEventListener("click", async () => {
+      const email = $("#account-email").value.trim();
+      const password = $("#account-password").value;
+      if (!email || password.length < 6) {
+        accountStatus("Nhập email và mật khẩu ít nhất 6 ký tự.");
+        return;
+      }
+      accountStatus("");
+      try {
+        const result = await createViewerAccount(email, password);
+        if (result.problem) {
+          accountStatus("Tài khoản đã tạo nhưng chưa chuyển được phiếu cũ: " + result.problem + ". Hãy Publish Rules Firebase rồi đăng nhập lại.");
+          return;
+        }
+        closeAccountModal();
+        if (activeComment) renderComments();
+        toast(result.moved ? "Đã tạo tài khoản và giữ lại " + result.moved + " phiếu trước đó." : "Đã tạo tài khoản. Bạn có thể bình luận và gửi điểm.");
+      } catch (e) { accountStatus("Không tạo được tài khoản: " + e.message); }
+    });
+    $("#account-signin").addEventListener("click", async () => {
+      const email = $("#account-email").value.trim();
+      const password = $("#account-password").value;
+      if (!email || !password) { accountStatus("Nhập cả email và mật khẩu nhé."); return; }
+      accountStatus("");
+      try {
+        const result = await signInViewer(email, password);
+        if (result.problem) {
+          accountStatus("Đã đăng nhập nhưng chưa chuyển được phiếu cũ: " + result.problem + ". Hãy Publish Rules Firebase rồi thử lại.");
+          return;
+        }
+        closeAccountModal();
+        if (activeComment) renderComments();
+        toast(result.moved ? "Đã đăng nhập và giữ lại " + result.moved + " phiếu trước đó." : "Đã đăng nhập tài khoản người xem.");
+      } catch (e) { accountStatus("Đăng nhập không được: " + e.message); }
+    });
+    $("#account-signout").addEventListener("click", () => {
+      signOutViewer();
+      closeAccountModal();
+      if (activeComment) renderComments();
+    });
+
+    $("#comment-close").addEventListener("click", closeCommentModal);
+    const commentBackdrop = document.querySelector("[data-close-comment]");
+    if (commentBackdrop) commentBackdrop.addEventListener("click", closeCommentModal);
+    $("#comment-form").addEventListener("submit", (e) => { e.preventDefault(); postComment(); });
+    $("#comment-account-btn").addEventListener("click", () => openAccountModal("Đăng nhập hoặc tạo tài khoản để bình luận. Phiếu vote trước đó của bạn sẽ được giữ lại."));
     if (AUTH_ENABLED) {
       $("#auth-signin").addEventListener("click", async () => {
         const status = $("#auth-status");
@@ -1995,6 +2366,13 @@
         if (modal) setPlayerSize(!modal.classList.contains("is-expanded"));
         return;
       }
+      const commentButton = e.target.closest("[data-comment-key]");
+      if (commentButton) {
+        openCommentModal(commentButton.dataset.commentKind, commentButton.dataset.commentKey, commentButton.dataset.commentTitle);
+        return;
+      }
+      const deleteCommentButton = e.target.closest("[data-delete-comment]");
+      if (deleteCommentButton) { deleteComment(deleteCommentButton.dataset.deleteComment); return; }
       const statusToggle = e.target.closest("[data-status-toggle]");
       if (statusToggle) { toggleAnimeStatus(statusToggle.dataset.statusToggle); return; }
       const share = e.target.closest("[data-share]");
@@ -2214,6 +2592,7 @@
     initialized = true;
     initTheme();
     applyOwnerUi();
+    applyViewerUi();
     initManager();
     initPlayerDrag();
     const year = new Date().getFullYear();
@@ -2235,6 +2614,8 @@
     }
     await hydrateImageCache();
     renderAll();
+    loadComments();
+    if (viewerSignedIn()) syncMyVotesFromServer();
     applyDeepLink();
     loadRatings();
     if (AUTH_ENABLED) {
