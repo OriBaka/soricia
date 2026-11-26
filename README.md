@@ -52,6 +52,11 @@ Sau khi cấu hình, mỗi lần **Thêm / Sửa / Xoá** trong bảng Quản l�
 4. **Realtime Database → Rules**: trong `firebase/rules.json`, thay `THAY_EMAIL_CHU_WEB@example.com` bằng email ở bước 2, rồi dán toàn bộ nội dung file vào tab Rules → **Publish**.
 5. Điền Web API key vào `data/config.js`, trường `authApiKey` (hoặc nhắn mình để mình điền và commit). Chưa điền thì web vẫn chạy chế độ lưu trong trình duyệt như cũ.
 
+### Tuỳ chọn: chuyển ảnh lên Firebase Storage
+- Firebase Console → **Storage** → nếu chưa có thì tạo bucket. Tên bucket phải khớp `storageBucket` trong `data/config.js` (mặc định `soricia.firebasestorage.app`; nếu Console hiện tên khác, nhắn mình đổi).
+- Storage → **Rules** → dán nội dung `firebase/storage.rules` → **Publish** (email chủ web đã được điền sẵn).
+- Ảnh bạn upload sẽ được đẩy lên `covers/...` và lưu thành link public trên Storage. Nếu Storage chưa sẵn sàng hoặc upload lỗi, ảnh tự động rơi về IndexedDB như trước — web vẫn chạy bình thường.
+
 ### Cách dùng
 - Mở `https://oribaka.github.io/soricia/index.html?admin=1` (hoặc `anime.html?admin=1`) → bảng Quản lý hiện ô **Đăng nhập chủ web**.
 - Đăng nhập xong thì thêm/sửa/xoá như trước. Mỗi thay đổi được đẩy lên node `collection` trên Firebase kèm `version` mới, nên mọi trình duyệt tự lấy bản mới.
