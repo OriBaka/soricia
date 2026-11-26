@@ -79,6 +79,7 @@ Nếu sau này bạn bật Blaze: tạo bucket Storage, vào Storage → Rules d
 - Trên đầu trang có nút **👤 Đăng nhập**. Khách tạo tài khoản (Email/Password) để **bình luận bài hát/anime** và **gửi điểm**; mỗi tài khoản chỉ một phiếu cho mỗi mục, hạn chế spam vote.
 - Khi tạo/đăng nhập tài khoản, web tự động **chuyển các phiếu ẩn danh đã vote trước đó sang UID tài khoản** và xoá bản ẩn danh — điểm không bị mất, cũng không bị tính trùng. Muốn tính năng này chạy được, Regina phải dán nội dung cập nhật của `firebase/rules.json` vào Firebase Console → Realtime Database → **Rules → Publish**.
 - Bình luận là công khai (ai cũng đọc được), nhưng chỉ tài khoản đăng nhập mới gửi và chỉ người viết mới xoá được bình luận của mình. Tối đa 500 ký tự.
+- Nếu phiếu cũ chưa hiện dù đã đăng nhập, mở lại ô tài khoản và bấm **Đồng bộ lại phiếu đã vote**. Web thử chuyển lại phiếu ẩn danh; trong lúc chưa đồng bộ được, phiếu trên máy vẫn được giữ và không bị gắn nhầm “Chưa vote”. Lỗi `HTTP 401` ở bước này nghĩa là Rules trong Console chưa được Publish.
 - Tài khoản người xem **không cấp quyền quản lý**; quyền sửa danh sách vẫn chỉ thuộc email chủ web trong `?admin=1`. Vui lòng dùng email khác với email chủ web khi đăng ký tài khoản người xem.
 
 ### Nhóm A — chắc chắn trước khi mở rộng

@@ -28,6 +28,7 @@
   const VOTER_KEY = "soricia.voter.token";
   const MY_VOTES_KEY = "soricia.my.votes";
   const MY_ANIME_VOTES_KEY = "soricia.my.anime.votes";
+  const VOTES_OWNER_KEY = "soricia.my.votes.owner";
   const OWNER_KEY = "soricia.owner.mode";
   const AUTH_KEY = "soricia.auth";
   const VIEWER_AUTH_KEY = "soricia.viewer.auth.v1";
@@ -414,12 +415,21 @@
     return (kind === "anime" ? "anime-" : "") + songKey(item);
   }
 
+  function votesOwnerMatches() {
+    try {
+      const owner = localStorage.getItem(VOTES_OWNER_KEY);
+      return !owner || owner === currentVoteIdentity();
+    } catch (e) { return true; }
+  }
+
   function loadMyVotes() {
+    if (!votesOwnerMatches()) return {};
     try { return JSON.parse(localStorage.getItem(MY_VOTES_KEY) || "{}") || {}; }
     catch (e) { return {}; }
   }
 
   function loadMyAnimeVotes() {
+    if (!votesOwnerMatches()) return {};
     try { return JSON.parse(localStorage.getItem(MY_ANIME_VOTES_KEY) || "{}") || {}; }
     catch (e) { return {}; }
   }
@@ -428,6 +438,7 @@
     try {
       localStorage.setItem(kind === "anime" ? MY_ANIME_VOTES_KEY : MY_VOTES_KEY,
         JSON.stringify(kind === "anime" ? myAnimeVotes : myVotes));
+      localStorage.setItem(VOTES_OWNER_KEY, currentVoteIdentity());
     } catch (e) { /* ignore */ }
   }
 
@@ -501,8 +512,12 @@
     return viewerAuth.idToken;
   }
 
-  async function voteIdentity() {
+  function currentVoteIdentity() {
     return viewerSignedIn() ? viewerAuth.localId : voterToken();
+  }
+
+  async function voteIdentity() {
+    return currentVoteIdentity();
   }
 
   function applyViewerUi() {
@@ -510,12 +525,14 @@
     const signout = $("#account-signout");
     const signup = $("#account-signup");
     const signin = $("#account-signin");
+    const resync = $("#account-resync");
     if (label) label.textContent = viewerSignedIn() ? (viewerAuth.email || "Tài khoản").split("@")[0] : "Đăng nhập";
     const button = $("#account-btn");
     if (button) button.title = viewerSignedIn() ? viewerAuth.email : "Đăng nhập / tạo tài khoản để bình luận và giữ phiếu vote";
     if (signout) signout.hidden = !viewerSignedIn();
     if (signup) signup.hidden = viewerSignedIn();
     if (signin) signin.hidden = viewerSignedIn();
+    if (resync) resync.hidden = !viewerSignedIn();
   }
 
   async function saveViewerProfile() {
@@ -580,8 +597,10 @@
         if (voteId.startsWith("anime-")) animeVotes[voteId] = value;
         else songs[voteId] = value;
       });
-      myVotes = songs;
-      myAnimeVotes = animeVotes;
+      // Giữ lại phiếu đã có trên máy nếu server chưa kịp có phiếu của tài khoản
+      // (ví dụ lần chuyển phiếu ẩn danh trước đó bị lỗi quyền). Server ưu tiên hơn.
+      myVotes = { ...myVotes, ...songs };
+      myAnimeVotes = { ...myAnimeVotes, ...animeVotes };
       persistMyVotes("song");
       persistMyVotes("anime");
       justVoted.song.clear();
@@ -778,6 +797,11 @@
   function viewerSyncMessage(action, problem) {
     const text = String(problem || "");
     const permissionIssue = /HTTP 401|HTTP 403|permission/i.test(text);
+    if (action === "resync") {
+      return permissionIssue
+        ? "Hiện web chưa lưu được phiếu. Bạn vẫn xem bình thường — thử lại sau hoặc báo chủ web nếu lỗi kéo dài."
+        : "Chưa đồng bộ được phiếu. Vui lòng thử lại sau.";
+    }
     if (permissionIssue) {
       return action === "signup"
         ? "Tài khoản đã tạo, nhưng hiện web chưa lưu được phiếu và bình luận. Bạn vẫn xem bình thường — thử lại sau, hoặc báo chủ web nếu lỗi kéo dài."
@@ -1069,7 +1093,8 @@
       await loadRatings();
       (kind === "anime" ? renderAnime : renderSongs)(false);
     } catch (e) {
-      toast("Không gửi được điểm. Thử lại sau.");
+      toast("Không gửi được điểm" + (e.message.includes("HTTP") ? " (" + e.message + ")" : "")
+        + ". Thử đăng xuất rồi đăng nhập lại, hoặc báo chủ web nếu lỗi kéo dài.");
     }
   }
 
@@ -2408,6 +2433,18 @@
       closeAccountModal();
       if (activeComment) renderComments();
     });
+    $("#account-resync").addEventListener("click", async () => {
+      if (!viewerSignedIn()) return;
+      accountStatus("");
+      try {
+        const result = await finishViewerAuth(false);
+        if (result.problem) { accountStatus(viewerSyncMessage("resync", result.problem)); return; }
+        accountStatus(result.moved
+          ? "Đã đồng bộ lại " + result.moved + " phiếu trước đó cho tài khoản này."
+          : "Phiếu của bạn đã được đồng bộ. Những bài đã vote vẫn giữ nguyên.", "success");
+        if (activeComment) renderComments();
+      } catch (e) { accountStatus(viewerSyncMessage("resync", e.message)); }
+    });
 
     $("#comment-close").addEventListener("click", closeCommentModal);
     const commentBackdrop = document.querySelector("[data-close-comment]");
@@ -2718,7 +2755,7 @@
     renderAll();
     animateStats();
     loadComments();
-    if (viewerSignedIn()) syncMyVotesFromServer();
+    if (viewerSignedIn()) finishViewerAuth(false);
     applyDeepLink();
     loadRatings();
     if (AUTH_ENABLED) {
