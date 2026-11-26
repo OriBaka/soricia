@@ -802,3 +802,17 @@ body[data-page="anime"] .showcase-card {
 }
 
 .status-tag.is-unwatched { background: var(--surface-2); color: var(--muted); }
+
+.history-box {
+  margin-top: 12px; padding: 12px; border-radius: 12px;
+  background: var(--surface-2); border: 1px solid var(--border-strong);
+}
+.history-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.history-head b { font-size: 12px; }
+.history-head .btn { padding: 5px 10px; font-size: 11px; }
+.history-list { max-height: 180px; overflow: auto; margin-top: 8px; }
+.history-list p {
+  margin: 0 0 6px; color: var(--muted); font-size: 11px; line-height: 1.5;
+}
+.history-list time { color: var(--violet); font-weight: 700; }
+.history-list b { color: var(--text); }
