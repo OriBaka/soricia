@@ -8,6 +8,9 @@
   let lastSyncAt = null;
   let pendingRemoteVersion = null;
   let dailySong = null;
+  const REDUCED_MOTION = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  let animateNextRender = true;
+  let statsAnimated = false;
   const STORAGE_KEY = "soricia.collection.v1";
   const VERSION_KEY = "soricia.collection.version";
   const BACKUP_KEY = "soricia.collection.backup.v1";
@@ -1041,7 +1044,7 @@
       justVoted[kind].add(songId);
       toast(changing ? "Đã cập nhật điểm của bạn: " + score + "." : "Đã ghi " + score + " điểm. Cảm ơn!");
       await loadRatings();
-      (kind === "anime" ? renderAnime : renderSongs)();
+      (kind === "anime" ? renderAnime : renderSongs)(false);
     } catch (e) {
       toast("Không gửi được điểm. Thử lại sau.");
     }
@@ -1372,7 +1375,8 @@
       chip.addEventListener("click", () => {
         justVoted[kind].clear();
         state[stateKey] = chip.dataset.voteFilter;
-        render();
+        render(true);
+        flagListSwap(kind);
       });
     });
   }
@@ -1439,17 +1443,19 @@
       lastRankSort = "community";
     }
     $("#music-sort").value = state.songSort;
-    renderSongs();
+    renderSongs(true);
+    flagListSwap("song");
   }
 
-  function renderSongs() {
+  function renderSongs(animate) {
     if (!HAS_MUSIC) return;
+    const shouldAnimate = animate === true && !REDUCED_MOTION;
     const items = sortItems(filterItems(songs, state.songGenre, state.songQuery, state.songVoteFilter, "song"), state.songSort, "song");
     const rows = items.map((song, i) => ({ song, rank: i + 1, cover: displayImage(song) }));
     updateVoteFilterChips("song");
     updateVoteProgress("song");
-    $("#music-list").innerHTML = rows.map(({ song, rank, cover }) => `
-      <li class="song${rank === 1 ? " is-top" : ""}" data-item-id="${esc(song.id)}">
+    $("#music-list").innerHTML = rows.map(({ song, rank, cover }, i) => `
+      <li class="song${rank === 1 ? " is-top" : ""}${shouldAnimate ? " is-entering" : ""}" style="--i:${i}" data-item-id="${esc(song.id)}">
         <span class="song-rank${cover ? " has-image" : ""}" aria-label="Hạng ${rank}" title="Hạng ${rank}">
           ${cover ? `<img src="${esc(cover)}" alt="">` : ""}
           <b>#${String(rank).padStart(2, "0")}</b>
@@ -1478,6 +1484,7 @@
         ${scoreBlock(song)}
       </li>
     `).join("");
+    wireImageReveal();
 
     $("#music-count").textContent = String(items.length);
     const empty = $("#music-empty");
@@ -1515,11 +1522,13 @@
       lastAnimeRankSort = "community";
     }
     $("#anime-sort").value = state.animeSort;
-    renderAnime();
+    renderAnime(true);
+    flagListSwap("anime");
   }
 
-  function renderAnime() {
+  function renderAnime(animate) {
     if (!HAS_ANIME) return;
+    const shouldAnimate = animate === true && !REDUCED_MOTION;
     const items = sortItems(filterItems(anime, state.animeGenre, state.animeQuery, state.animeVoteFilter, "anime"), state.animeSort, "anime");
     updateVoteFilterChips("anime");
     updateVoteProgress("anime");
@@ -1531,7 +1540,7 @@
       const unwatched = status === "Chưa xem";
       const meta = [...genresOf(show), show.year ? String(show.year) : null, show.episodes ? show.episodes + " tập" : null].filter(Boolean);
       return `
-        <article class="anime-card" data-item-id="${esc(show.id)}">
+        <article class="anime-card${shouldAnimate ? " is-entering" : ""}" style="--i:${i}" data-item-id="${esc(show.id)}">
           <div class="anime-cover" style="--c1:${from};--c2:${to}">
             ${cover ? `<img class="anime-cover-img" src="${esc(cover)}" alt="">` : ""}
             <span class="status-tag${watching ? " is-watching" : ""}${unwatched ? " is-unwatched" : ""}">${esc(status)}</span>
@@ -1552,6 +1561,7 @@
         </article>
       `;
     }).join("");
+    wireImageReveal();
 
     $("#anime-count").textContent = String(items.length);
     const empty = $("#anime-empty");
@@ -1563,6 +1573,61 @@
         : state.animeVoteFilter === "unvoted" && Object.keys(myAnimeVotes).length >= anime.length
           ? "Bạn đã vote hết các anime rồi — cảm ơn bạn!"
           : "Chưa có anime nào khớp với bộ lọc này.";
+  }
+
+  function flagListSwap(kind) {
+    if (REDUCED_MOTION) return;
+    const list = kind === "song" ? $("#music-list") : $("#anime-list");
+    if (!list) return;
+    list.classList.remove("is-swapping");
+    void list.offsetWidth;
+    list.classList.add("is-swapping");
+    window.setTimeout(() => list.classList.remove("is-swapping"), 260);
+  }
+
+  function wireImageReveal() {
+    if (REDUCED_MOTION) return;
+    document.querySelectorAll(".song-rank img, .anime-cover-img").forEach((img) => {
+      if (img.dataset.reveal === "done") return;
+      img.dataset.reveal = "done";
+      const done = () => img.classList.add("is-loaded");
+      if (img.complete) done();
+      else {
+        img.addEventListener("load", done, { once: true });
+        img.addEventListener("error", done, { once: true });
+      }
+    });
+  }
+
+  function animateStats() {
+    if (statsAnimated || REDUCED_MOTION || !window.requestAnimationFrame) return;
+    statsAnimated = true;
+    document.querySelectorAll("[data-stat]").forEach((el) => {
+      const raw = el.textContent.trim();
+      const target = Number(raw.replace(",", "."));
+      if (!Number.isFinite(target)) return;
+      const decimal = raw.includes(".");
+      const start = performance.now();
+      const duration = 650;
+      const step = (now) => {
+        const progress = Math.min(1, (now - start) / duration);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const value = target * eased;
+        el.textContent = decimal ? value.toFixed(1) : String(Math.round(value));
+        if (progress < 1) window.requestAnimationFrame(step);
+        else el.textContent = raw;
+      };
+      window.requestAnimationFrame(step);
+    });
+  }
+
+  function flashStatusToggle(id) {
+    if (REDUCED_MOTION) return;
+    const button = [...document.querySelectorAll("[data-status-toggle]")]
+      .find((el) => el.dataset.statusToggle === id);
+    if (!button) return;
+    button.classList.add("is-changed");
+    window.setTimeout(() => button.classList.remove("is-changed"), 450);
   }
 
   function setStat(name, value) {
@@ -1641,31 +1706,33 @@
     $("#daily-artist").textContent = dailySong.artist || "";
   }
 
-  function renderAll() {
+  function renderAll(animate) {
+    const shouldAnimate = animate === true || (animate !== false && animateNextRender && !REDUCED_MOTION);
+    animateNextRender = false;
     if (HAS_MUSIC && state.songGenre !== "Tất cả" && !uniqueGenres(songs).includes(state.songGenre)) state.songGenre = "Tất cả";
     if (HAS_ANIME && state.animeGenre !== "Tất cả" && !uniqueGenres(anime).includes(state.animeGenre)) state.animeGenre = "Tất cả";
     if (HAS_ANIME && state.animeStatusFilter !== "Tất cả"
       && !new Set(anime.map(animeStatus)).has(state.animeStatusFilter)) state.animeStatusFilter = "Tất cả";
-    renderSongs();
-    renderAnime();
+    renderSongs(shouldAnimate);
+    renderAnime(shouldAnimate);
     fillHeroAndStats();
     renderDailyPick();
     const genres = uniqueGenres(HAS_MUSIC && HAS_ANIME ? [...songs, ...anime] : HAS_MUSIC ? songs : anime);
     $("#genre-options").innerHTML = genres.map((g) => `<option value="${esc(g)}"></option>`).join("");
     if (HAS_MUSIC) {
-      makeChips($("#music-filters"), uniqueGenres(songs), state.songGenre, (g) => { state.songGenre = g; renderSongs(); });
+      makeChips($("#music-filters"), uniqueGenres(songs), state.songGenre, (g) => { state.songGenre = g; renderSongs(true); flagListSwap("song"); });
       renderVoteFilterChips("song");
     }
     if (HAS_ANIME) {
       renderVoteFilterChips("anime");
-      makeChips($("#anime-filters"), uniqueGenres(anime), state.animeGenre, (g) => { state.animeGenre = g; renderAnime(); });
+      makeChips($("#anime-filters"), uniqueGenres(anime), state.animeGenre, (g) => { state.animeGenre = g; renderAnime(true); flagListSwap("anime"); });
       const statusLabels = ["Chưa xem", "Đang xem", "Đã xem"];
       const statusCounts = { "Tất cả": anime.length };
       statusLabels.forEach((label) => {
         statusCounts[label] = anime.filter((x) => animeStatus(x) === label).length;
       });
       makeChips($("#anime-status-filters"), statusLabels, state.animeStatusFilter,
-        (v) => { state.animeStatusFilter = v; renderAnime(); }, statusCounts);
+        (v) => { state.animeStatusFilter = v; renderAnime(true); flagListSwap("anime"); }, statusCounts);
     }
   }
 
@@ -2078,6 +2145,7 @@
     }
     recordHistory("status", "anime", item.title + " → " + nextStatus);
     renderAll();
+    flashStatusToggle(id);
     const undo = async () => {
       const restore = { songs, anime: previous };
       if (AUTH_ENABLED) {
@@ -2092,6 +2160,7 @@
       }
       recordHistory("restore", "anime", item.title);
       renderAll();
+      flashStatusToggle(id);
       toast(AUTH_ENABLED ? "Đã khôi phục trên web." : "Đã hoàn tác.");
     };
     const messages = {
@@ -2602,18 +2671,19 @@
       document.querySelectorAll("#music-tabs .view-tab").forEach((tab) => {
         tab.addEventListener("click", () => setSongView(tab.dataset.view));
       });
-      $("#music-search").addEventListener("input", (e) => { state.songQuery = e.target.value; renderSongs(); });
-      $("#music-sort").addEventListener("change", (e) => { state.songSort = e.target.value; renderSongs(); });
+      $("#music-search").addEventListener("input", (e) => { state.songQuery = e.target.value; renderSongs(false); });
+      $("#music-sort").addEventListener("change", (e) => { state.songSort = e.target.value; renderSongs(true); flagListSwap("song"); });
     }
     if (HAS_ANIME) {
       document.querySelectorAll("#anime-tabs .view-tab").forEach((tab) => {
         tab.addEventListener("click", () => setAnimeView(tab.dataset.view));
       });
-      $("#anime-search").addEventListener("input", (e) => { state.animeQuery = e.target.value; renderAnime(); });
-      $("#anime-sort").addEventListener("change", (e) => { state.animeSort = e.target.value; renderAnime(); });
+      $("#anime-search").addEventListener("input", (e) => { state.animeQuery = e.target.value; renderAnime(false); });
+      $("#anime-sort").addEventListener("change", (e) => { state.animeSort = e.target.value; renderAnime(true); flagListSwap("anime"); });
     }
     await hydrateImageCache();
     renderAll();
+    animateStats();
     loadComments();
     if (viewerSignedIn()) syncMyVotesFromServer();
     applyDeepLink();
