@@ -24,10 +24,10 @@ Người xem bình thường **chỉ thấy nút chấm điểm**. Để hiện 
 3. Chọn ảnh bìa/poster nếu có — ảnh tự động nén trước khi lưu.
 4. Bấm **Thêm** hoặc **Lưu thay đổi**. Nút **✎ Sửa / ✕ Xoá** luôn hiện trên từng bài/anime — bấm **✎ Sửa** để đổi điểm, ghi chú hoặc thêm ảnh cho mục đã có.
 
-Dữ liệu được lưu trong **trình duyệt của thiết bị đó** (`localStorage`). Ảnh bìa có sẵn trong `data/data.js` **không** bị nhét lại vào bộ nhớ trình duyệt (web chỉ lưu một mã tham chiếu), nên không bị lỗi “bộ nhớ đầy” vì 17 ảnh gốc. Ảnh bạn tự tải lên vẫn được lưu và có thể chiếm chỗ — nếu lưu quá nhiều ảnh lớn, hãy tải file JSON về rồi xoá bớt. Để mang sang thiết bị khác hoặc đưa lên GitHub, mở tab **Dữ liệu**:
+Dữ liệu được lưu trong **trình duyệt của thiết bị đó** (`localStorage`). Ảnh bìa có sẵn nằm riêng trong `assets/covers/` và `data/data.js` chỉ giữ đường dẫn tới file, nên file dữ liệu nhẹ và web không bị lỗi “bộ nhớ đầy” vì ảnh gốc. Ảnh bạn tự tải lên vẫn được lưu và có thể chiếm chỗ — nếu lưu quá nhiều ảnh lớn, hãy tải file JSON về rồi xoá bớt. Để mang sang thiết bị khác hoặc đưa lên GitHub, mở tab **Dữ liệu**:
 
 - **Tải file JSON**: sao lưu / nhập lại ở thiết bị khác.
-- **Tải file data.js**: thay nội dung `data/data.js` trên GitHub, commit/push để mọi người đều thấy danh sách mới. File xuất ra tự gắn mốc `version` mới, nên người xem cũ sẽ tự lấy bản mới thay vì dùng dữ liệu đã lưu trong trình duyệt.
+- **Tải file data.js**: thay nội dung `data/data.js` trên GitHub, commit/push để mọi người đều thấy danh sách mới. Nếu file từ Drive còn nhét ảnh base64, chạy `node tools/extract-covers.js` để tách ảnh sang `assets/covers/` trước khi commit. File xuất ra tự gắn mốc `version` mới, nên người xem cũ sẽ tự lấy bản mới thay vì dùng dữ liệu đã lưu trong trình duyệt.
 - **Khôi phục dữ liệu gốc**: quay lại nội dung hiện trong `data/data.js`.
 
 Sau khi push lên `main`, GitHub Pages tự build lại trong vài phút. Nếu vẫn thấy bản cũ, mở `https://oribaka.github.io/soricia/?new=1` hoặc ép tải lại (`Ctrl+Shift+R` / `Cmd+Shift+R`).
@@ -66,14 +66,14 @@ Rules chỉ cho phép khách đọc bảng `votes` và ghi số từ 1–10 vào
 
 Phần Âm nhạc có 2 tab:
 
-- **Bảng xếp hạng**: xếp theo **điểm trung bình vote cộng đồng** (mặc định), hiện điểm trung bình, điểm của tác giả và ô chấm điểm. Mỗi bài có số hạng riêng `#01`, `#02`… (không chia sẻ hạng). Các bài cùng điểm được xếp ngẫu nhiên với nhau; thứ tự ngẫu nhiên này được lưu trong trình duyệt để không đổi mỗi lần tải lại. Có thể đổi kiểu sắp xếp bằng ô “Sắp xếp bài hát”. Cạnh bộ lọc thể loại có thêm 3 chip **Tất cả / Đã vote / Chưa vote** (kèm số bài), dùng được ở cả hai tab; sau khi gửi điểm, bài đó chuyển sang nhóm “Đã vote”.
+- **Bảng xếp hạng**: xếp theo **điểm trung bình vote cộng đồng** (mặc định), hiện điểm trung bình, điểm của tác giả và ô chấm điểm. Mỗi bài có số hạng riêng `#01`, `#02`… (không chia sẻ hạng). Các bài cùng điểm được xếp ngẫu nhiên với nhau; thứ tự ngẫu nhiên này được lưu trong trình duyệt để không đổi mỗi lần tải lại. Có thể đổi kiểu sắp xếp bằng ô “Sắp xếp bài hát”. Cạnh bộ lọc thể loại có thêm 3 chip **Tất cả / Đã vote / Chưa vote** (kèm số bài), dùng được ở cả hai tab; tab Vote còn có thanh tiến độ “Bạn đã chấm X/Y bài”. Sau khi gửi điểm, bài đó vẫn hiện lại tại chỗ để bạn kịp xem điểm, cho đến khi đổi bộ lọc.
 - **Vote nhạc**: ẩn điểm cộng đồng, điểm tác giả, thanh điểm và ô thống kê điểm trung bình. Mỗi bài chỉ hiện ô chấm 1–10; sau khi bạn bấm **Gửi**, bài đó mới lộ điểm trung bình, điểm tác giả và cho phép **Sửa** điểm. Các bài chưa chấm vẫn giấu điểm. Tab này tự sắp theo thứ hạng có sẵn để không lộ điểm qua thứ tự sắp xếp; quay lại **Bảng xếp hạng** sẽ khôi phục kiểu sắp xếp cũ.
 
 Phần Anime dùng **cùng cơ chế 2 tab** (`Bảng xếp hạng` / `Vote anime`): xếp theo điểm vote cộng đồng, số hạng riêng `#01`, cùng điểm thì trộn ngẫu nhiên, chip lọc **Tất cả / Đã vote / Chưa vote**, và tab Vote giấu điểm + sao cho đến khi bạn gửi phiếu. Phiếu anime được lưu riêng (`anime-<tên bộ>`) trên Firebase nên không lẫn với phiếu bài hát.
 
 ## Nghe nhạc ngay trên web
 
-Mỗi bài có nút **▶ Nghe**: bấm mở trình phát YouTube dạng cửa sổ nhỏ góc màn hình, nhạc chạy ngay mà **vẫn cuộn trang, gõ điểm và vote được**. Kéo bằng thanh tiêu đề (có ký hiệu ⠿) để đặt cửa sổ nhạc ở bất cứ đâu; vị trí được nhớ lại sau khi tải lại trang. Nút **⤢** phóng to full màn hình, **🗕** thu nhỏ lại về vị trí đã kéo, **✕** đóng; phím Esc thu nhỏ rồi đóng. Link được lưu trong trường `youtube` của từng bài trong `data/data.js` (45/45 bài). Chủ web có thể dán link mới vào ô **Link YouTube** trong form Sửa/Thêm rồi lưu; chấp nhận cả `https://youtu.be/...`, `youtube.com/watch?v=...` hoặc ID 11 ký tự.
+Mỗi bài có nút **▶ Nghe**: bấm mở trình phát YouTube dạng cửa sổ nhỏ góc màn hình, nhạc chạy ngay mà **vẫn cuộn trang, gõ điểm và vote được**. Kéo bằng thanh tiêu đề (có ký hiệu ⠿) để đặt cửa sổ nhạc ở bất cứ đâu; vị trí được nhớ lại sau khi tải lại trang. Nút **⤢** phóng to full màn hình, **🗕** thu nhỏ lại về vị trí đã kéo, **✕** đóng; phím Esc thu nhỏ rồi đóng. Link được lưu trong trường `youtube` của từng bài trong `data/data.js` (77/77 bài). Chủ web có thể dán link mới vào ô **Link YouTube** trong form Sửa/Thêm rồi lưu; chấp nhận cả `https://youtu.be/...`, `youtube.com/watch?v=...` hoặc ID 11 ký tự.
 
 YouTube có thể chặn nhúng ở một số video/quốc gia; nút **Mở YouTube ↗** luôn có sẵn làm phương án dự phòng. Web chỉ nhúng video, không tải hoặc lưu file nhạc có bản quyền.
 
@@ -112,7 +112,9 @@ index.html            Trang âm nhạc + bảng quản lý dùng chung
 anime.html            Trang anime + bảng quản lý dùng chung
 assets/css/style.css  Giao diện, ảnh thumbnail, bảng quản lý
 assets/js/app.js      Render, lọc, lưu trình duyệt, nén ảnh, xuất/nhập
-data/data.js          Dữ liệu khởi tạo (seed)
+data/data.js          Dữ liệu khởi tạo (seed, chỉ chứa đường dẫn ảnh)
+assets/covers/        Ảnh bìa/poster tách riêng khỏi data.js
 data/config.js        Cấu hình Firebase Realtime Database
+tools/extract-covers.js  Tách ảnh base64 sang assets/covers/ sau mỗi lần sync data.js
 firebase/rules.json   Quyền cho khách vote (dán vào Firebase → Rules)
 ```

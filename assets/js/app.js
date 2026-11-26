@@ -117,7 +117,7 @@
       clean.rank = Number(clean.rank) || i + 1;
       clean.score = clampScore(clean.score);
       if (!clean.genre) clean.genre = "Khác";
-      if (clean.image && !/^(data:image\/|https?:\/\/)/i.test(clean.image)) clean.image = null;
+      if (clean.image && !/^(data:image\/|https?:\/\/|\.{0,2}\/|assets\/)/i.test(clean.image)) clean.image = null;
       clean.youtube = youtubeId(clean.youtube) || null;
       return clean;
     });
@@ -566,6 +566,28 @@
     });
   }
 
+  function updateVoteProgress(kind = "song") {
+    const prefix = kind === "song" ? "music" : "anime";
+    const wrap = $("#" + prefix + "-progress");
+    if (!wrap) return;
+    const list = kind === "song" ? songs : anime;
+    const mine = kind === "song" ? myVotes : myAnimeVotes;
+    const voted = list.filter((item) => mine[voteKey(item, kind)] != null).length;
+    const total = list.length;
+    const pct = total ? Math.round((voted / total) * 100) : 0;
+    $("#" + prefix + "-progress-label").textContent = voted + " / " + total + " " + (kind === "song" ? "bài" : "anime");
+    const bar = $("#" + prefix + "-progress-bar");
+    if (bar) {
+      bar.style.width = pct + "%";
+      const track = bar.parentElement;
+      if (track) {
+        track.setAttribute("aria-valuemin", "0");
+        track.setAttribute("aria-valuemax", String(total));
+        track.setAttribute("aria-valuenow", String(voted));
+      }
+    }
+  }
+
   function actionsFor(type, item) {
     if (!OWNER_MODE) return "";
     return `
@@ -588,6 +610,8 @@
     $("#music-title").textContent = view === "vote" ? "Chấm điểm bài hát" : "Bài hát xếp hạng theo thể loại";
     $("#music-desc-rank").hidden = view === "vote";
     $("#music-desc-vote").hidden = view !== "vote";
+    const progress = $("#music-progress");
+    if (progress) progress.hidden = view !== "vote";
     if (view === "vote") {
       if (state.songSort === "score" || state.songSort === "community") {
         lastRankSort = state.songSort;
@@ -606,6 +630,7 @@
     const items = sortItems(filterItems(songs, state.songGenre, state.songQuery, state.songVoteFilter, "song"), state.songSort, "song");
     const rows = items.map((song, i) => ({ song, rank: i + 1 }));
     updateVoteFilterChips("song");
+    updateVoteProgress("song");
     $("#music-list").innerHTML = rows.map(({ song, rank }) => `
       <li class="song${rank === 1 ? " is-top" : ""}">
         <span class="song-rank${song.image ? " has-image" : ""}" aria-label="Hạng ${rank}" title="Hạng ${rank}">
@@ -659,6 +684,8 @@
     $("#anime-section-title").textContent = view === "vote" ? "Chấm điểm anime" : "Những bộ tôi đã xem";
     $("#anime-desc-rank").hidden = view === "vote";
     $("#anime-desc-vote").hidden = view !== "vote";
+    const progress = $("#anime-progress");
+    if (progress) progress.hidden = view !== "vote";
     if (view === "vote") {
       if (state.animeSort === "score" || state.animeSort === "community") {
         lastAnimeRankSort = state.animeSort;
@@ -676,6 +703,7 @@
     if (!HAS_ANIME) return;
     const items = sortItems(filterItems(anime, state.animeGenre, state.animeQuery, state.animeVoteFilter, "anime"), state.animeSort, "anime");
     updateVoteFilterChips("anime");
+    updateVoteProgress("anime");
     $("#anime-list").innerHTML = items.map((show, i) => {
       const [from, to] = paletteFor(show.title);
       const watching = fold(show.status).includes("dang");

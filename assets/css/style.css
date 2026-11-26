@@ -658,3 +658,22 @@ body[data-page="anime"] .showcase-card {
   border-color: var(--pink);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--pink) 18%, transparent);
 }
+
+/* Thanh tiến độ bình chọn — chỉ hiện trong tab Vote. */
+.vote-progress { margin: 16px 0 2px; }
+.vote-progress-head {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+  color: var(--muted); font-size: 12px; font-weight: 600;
+}
+.vote-progress-head strong {
+  color: var(--accent); font-family: "Space Grotesk", sans-serif; font-size: 13px;
+}
+.vote-progress-track {
+  height: 6px; margin-top: 8px; border-radius: 99px;
+  background: var(--surface-2); overflow: hidden;
+}
+.vote-progress-track span {
+  display: block; width: 0; height: 100%; border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--violet));
+  transition: width .3s ease;
+}

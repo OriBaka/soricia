@@ -6,14 +6,14 @@
   <meta name="description" content="Nhật ký anime và bảng xếp hạng bình chọn của Soricia.">
   <meta name="theme-color" content="#0b0c12">
   <title>Soricia — Anime của tôi</title>
-  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=38">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=39">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=38">
-  <script src="data/data.js?v=38"></script>
-  <script src="data/config.js?v=38"></script>
-  <script src="assets/js/app.js?v=38" defer></script>
+  <link rel="stylesheet" href="assets/css/style.css?v=39">
+  <script src="data/data.js?v=39"></script>
+  <script src="data/config.js?v=39"></script>
+  <script src="assets/js/app.js?v=39" defer></script>
 </head>
 <body data-page="anime">
   <a class="skip-link" href="#main">Chuyển đến nội dung</a>
@@ -91,6 +91,11 @@
         <div class="view-tabs" id="anime-tabs" role="tablist" aria-label="Chế độ xem anime">
           <button class="view-tab is-active" type="button" data-view="rank" role="tab" aria-selected="true">Bảng xếp hạng</button>
           <button class="view-tab" type="button" data-view="vote" role="tab" aria-selected="false">Vote anime</button>
+        </div>
+
+        <div class="vote-progress" id="anime-progress" hidden>
+          <div class="vote-progress-head"><span>Tiến độ bình chọn của bạn</span><strong id="anime-progress-label">0 / 0 anime</strong></div>
+          <div class="vote-progress-track" role="progressbar" aria-label="Tiến độ bình chọn anime"><span id="anime-progress-bar"></span></div>
         </div>
 
         <div class="toolbar reveal">
