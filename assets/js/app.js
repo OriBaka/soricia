@@ -508,10 +508,14 @@
   function applyViewerUi() {
     const label = $("#account-label");
     const signout = $("#account-signout");
+    const signup = $("#account-signup");
+    const signin = $("#account-signin");
     if (label) label.textContent = viewerSignedIn() ? (viewerAuth.email || "Tài khoản").split("@")[0] : "Đăng nhập";
     const button = $("#account-btn");
     if (button) button.title = viewerSignedIn() ? viewerAuth.email : "Đăng nhập / tạo tài khoản để bình luận và giữ phiếu vote";
     if (signout) signout.hidden = !viewerSignedIn();
+    if (signup) signup.hidden = viewerSignedIn();
+    if (signin) signin.hidden = viewerSignedIn();
   }
 
   async function saveViewerProfile() {
@@ -784,11 +788,12 @@
       : "Đã đăng nhập nhưng chưa đồng bộ được phiếu cũ. Vui lòng đăng xuất rồi đăng nhập lại.";
   }
 
-  function accountStatus(message) {
+  function accountStatus(message, kind) {
     const box = $("#account-status");
     if (!box) return;
     box.textContent = message || "";
     box.hidden = !message;
+    box.classList.toggle("is-success", kind === "success");
   }
 
   async function signInOwner(email, password) {
@@ -2371,9 +2376,10 @@
           accountStatus(viewerSyncMessage("signup", result.problem));
           return;
         }
-        closeAccountModal();
+        accountStatus(result.moved
+          ? "Tạo tài khoản thành công — bạn đã được đăng nhập và giữ lại " + result.moved + " phiếu trước đó."
+          : "Tạo tài khoản thành công — bạn đã được đăng nhập. Giờ có thể bình luận và gửi điểm.", "success");
         if (activeComment) renderComments();
-        toast(result.moved ? "Đã tạo tài khoản và giữ lại " + result.moved + " phiếu trước đó." : "Đã tạo tài khoản. Bạn có thể bình luận và gửi điểm.");
       } catch (e) { accountStatus("Không tạo được tài khoản: " + e.message); }
     });
     $("#account-signin").addEventListener("click", async () => {
@@ -2391,9 +2397,10 @@
           accountStatus(viewerSyncMessage("signin", result.problem));
           return;
         }
-        closeAccountModal();
+        accountStatus(result.moved
+          ? "Đăng nhập thành công! Đã giữ lại " + result.moved + " phiếu trước đó."
+          : "Đăng nhập thành công! Bạn có thể bình luận và gửi điểm.", "success");
         if (activeComment) renderComments();
-        toast(result.moved ? "Đã đăng nhập và giữ lại " + result.moved + " phiếu trước đó." : "Đã đăng nhập tài khoản người xem.");
       } catch (e) { accountStatus("Đăng nhập không được: " + e.message); }
     });
     $("#account-signout").addEventListener("click", () => {
