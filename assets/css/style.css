@@ -684,3 +684,12 @@ body[data-page="anime"] .showcase-card {
   border-bottom: 1px solid var(--border);
 }
 .auth-box .data-intro { margin: 0 0 2px; }
+
+/* Toast có nút Hoàn tác. */
+.toast { display: flex; align-items: center; gap: 12px; }
+.toast-action {
+  flex: 0 0 auto; padding: 4px 10px; border-radius: 8px;
+  border: 1px solid var(--accent-ink); background: transparent;
+  color: var(--accent-ink); font-size: 12px; font-weight: 800;
+}
+.toast-action:hover { background: color-mix(in srgb, var(--accent-ink) 20%, transparent); }
