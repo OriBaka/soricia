@@ -512,12 +512,28 @@
     }
   }
 
-  function toast(message) {
+  function toast(message, actionLabel, onAction) {
     const el = $("#toast");
-    el.textContent = message;
+    if (!el) return;
+    el.textContent = "";
+    const text = document.createElement("span");
+    text.textContent = message;
+    el.appendChild(text);
+    if (actionLabel && typeof onAction === "function") {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "toast-action";
+      button.textContent = actionLabel;
+      button.addEventListener("click", () => {
+        clearTimeout(toast.timer);
+        el.classList.remove("is-visible");
+        onAction();
+      });
+      el.appendChild(button);
+    }
     el.classList.add("is-visible");
     clearTimeout(toast.timer);
-    toast.timer = setTimeout(() => el.classList.remove("is-visible"), 2800);
+    toast.timer = setTimeout(() => el.classList.remove("is-visible"), actionLabel ? 8000 : 2800);
   }
 
   function loadPlayerPos() {
@@ -985,6 +1001,36 @@
     }
   }
 
+  async function findAnimePoster() {
+    const input = $("#anime-title");
+    const title = input ? input.value.trim() : "";
+    if (!title) {
+      formError("anime", "Nhập tên anime trước khi tìm poster nhé.", "anime-title");
+      return;
+    }
+    const status = $("#anime-form-status");
+    if (status) { status.textContent = "Đang tìm poster…"; status.hidden = false; }
+    try {
+      const res = await fetch("https://api.jikan.moe/v4/anime?q=" + encodeURIComponent(title) + "&limit=3");
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      const results = Array.isArray(data.data) ? data.data : [];
+      const wanted = fold(title);
+      const exact = results.find((a) => fold(a.title || "") === wanted)
+        || results.find((a) => fold(a.title || "").includes(wanted) || wanted.includes(fold(a.title || "")));
+      const chosen = exact || results[0];
+      const images = chosen && chosen.images && chosen.images.jpg;
+      const url = images && (images.large_image_url || images.image_url);
+      if (!url) throw new Error("Không tìm thấy poster phù hợp.");
+      pendingImages.anime = url;
+      updateImagePreview("anime");
+      if (status) { status.hidden = true; status.textContent = ""; }
+      toast("Đã gợi ý poster: " + (chosen.title || title) + ". Có thể đổi ảnh khác.");
+    } catch (e) {
+      if (status) { status.textContent = "Không tìm được poster: " + e.message; status.hidden = false; }
+    }
+  }
+
   /* ---------- manager panel ---------- */
   function setTab(tab) {
     document.querySelectorAll(".panel-tab").forEach((btn) => {
@@ -1149,7 +1195,8 @@
     const list = type === "song" ? songs : anime;
     const item = list.find((x) => x.id === id);
     if (!item || !window.confirm('Xoá "' + item.title + '" khỏi danh sách?')) return;
-    const next = list.filter((x) => x.id !== id).map((x, i) => ({ ...x, index: i }));
+    const previous = list.map((x, i) => ({ ...x, index: i }));
+    const next = previous.filter((x) => x.id !== id);
     const collection = type === "song" ? { songs: next, anime } : { songs, anime: next };
     if (AUTH_ENABLED) {
       currentVersion = new Date().toISOString();
@@ -1168,7 +1215,28 @@
       else anime = next;
     }
     renderAll();
-    toast(AUTH_ENABLED ? "Đã xoá trên web." : "Đã xoá khỏi danh sách.");
+    const undo = async () => {
+      const restore = type === "song" ? { songs: previous, anime } : { songs, anime: previous };
+      if (AUTH_ENABLED) {
+        currentVersion = new Date().toISOString();
+        try {
+          await pushRemoteCollection(restore);
+        } catch (e) {
+          toast("Không hoàn tác được trên web: " + e.message);
+          return;
+        }
+        if (type === "song") songs = previous;
+        else anime = previous;
+        save();
+      } else {
+        if (!save(restore)) return;
+        if (type === "song") songs = previous;
+        else anime = previous;
+      }
+      renderAll();
+      toast(AUTH_ENABLED ? "Đã khôi phục trên web." : "Đã hoàn tác.");
+    };
+    toast(AUTH_ENABLED ? "Đã xoá trên web." : "Đã xoá khỏi danh sách.", "Hoàn tác", undo);
   }
 
   function downloadFile(content, filename, mime) {
@@ -1288,6 +1356,8 @@
         updateImagePreview(type);
       });
     });
+    const findPoster = $("#anime-find-poster");
+    if (findPoster) findPoster.addEventListener("click", findAnimePoster);
 
     $("#export-json").addEventListener("click", () => {
       const payload = {

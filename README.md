@@ -21,8 +21,8 @@ Người xem bình thường **chỉ thấy nút chấm điểm**. Để hiện 
 
 1. Vào website ở chế độ chủ web, bấm nút **Quản lý** ở góc trên (hoặc **+ Thêm bài hát** / **+ Thêm anime** trong từng mục).
 2. Điền thông tin: tên, nghệ sĩ/tên phụ, thể loại (gõ thể loại mới tuỳ thích; một anime có thể có nhiều thể loại, cách nhau bằng dấu phẩy như `Action, Drama, Mecha`), điểm 0–10, năm, số tập, trạng thái và ghi chú. Bộ lọc anime sẽ tách từng thể loại để lọc riêng.
-3. Chọn ảnh bìa/poster nếu có — ảnh tự động nén trước khi lưu.
-4. Bấm **Thêm** hoặc **Lưu thay đổi**. Nút **✎ Sửa / ✕ Xoá** luôn hiện trên từng bài/anime — bấm **✎ Sửa** để đổi điểm, ghi chú hoặc thêm ảnh cho mục đã có.
+3. Chọn ảnh bìa/poster nếu có — ảnh tự động nén trước khi lưu. Với anime, bấm **✦ Tìm poster gợi ý** để lấy ảnh từ Jikan theo tên anime, rồi đổi sang ảnh khác nếu muốn.
+4. Bấm **Thêm** hoặc **Lưu thay đổi**. Nút **✎ Sửa / ✕ Xoá** luôn hiện trên từng bài/anime — bấm **✎ Sửa** để đổi điểm, ghi chú hoặc thêm ảnh cho mục đã có. Sau khi xoá, toast hiện nút **Hoàn tác** trong 8 giây để khôi phục.
 
 Dữ liệu được lưu trong **trình duyệt của thiết bị đó** (`localStorage`). Ảnh bìa có sẵn nằm riêng trong `assets/covers/` và `data/data.js` chỉ giữ đường dẫn tới file, nên file dữ liệu nhẹ và web không bị lỗi “bộ nhớ đầy” vì ảnh gốc. Ảnh bạn tự tải lên vẫn được lưu và có thể chiếm chỗ — nếu lưu quá nhiều ảnh lớn, hãy tải file JSON về rồi xoá bớt. Để mang sang thiết bị khác hoặc đưa lên GitHub, mở tab **Dữ liệu**:
 
