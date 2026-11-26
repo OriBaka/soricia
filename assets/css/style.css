@@ -865,3 +865,69 @@ body[data-page="anime"] .showcase-card {
   .account-btn span:last-child { display: none; }
   .modal-box { padding: 16px; }
 }
+
+/* Hiệu ứng nhẹ: vào danh sách, nạp ảnh, điểm số, modal và trạng thái. */
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(10px) scale(.99); }
+  to { opacity: 1; transform: none; }
+}
+.song.is-entering, .anime-card.is-entering {
+  animation: cardIn .32s cubic-bezier(.2, .8, .25, 1) both;
+  animation-delay: calc(min(var(--i, 0), 12) * 28ms);
+}
+
+@keyframes meterFill {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.meter span { transform-origin: left center; animation: meterFill .6s ease-out both; }
+
+@keyframes badgePulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.08); opacity: .82; }
+}
+.new-badge { animation: badgePulse 2.2s ease-in-out 2; }
+
+.song-rank img, .anime-cover-img {
+  filter: blur(6px); opacity: .55;
+  transition: filter .45s ease, opacity .45s ease;
+}
+.song-rank img.is-loaded, .anime-cover-img.is-loaded { filter: none; opacity: 1; }
+
+@keyframes listSwap {
+  from { opacity: .55; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+#music-list.is-swapping, #anime-list.is-swapping { animation: listSwap .24s ease both; }
+
+@keyframes statusPop {
+  0% { transform: scale(.94); }
+  60% { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+.status-toggle.is-changed { animation: statusPop .42s ease; }
+
+@keyframes backdropIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(16px) scale(.98); }
+  to { opacity: 1; transform: none; }
+}
+.modal-backdrop { animation: backdropIn .22s ease both; }
+.modal-box { animation: modalIn .28s cubic-bezier(.2, .9, .25, 1) both; }
+
+@keyframes linkedGlow {
+  0% { box-shadow: 0 0 0 0 rgba(201, 242, 106, .45); }
+  30% { box-shadow: 0 0 0 8px rgba(201, 242, 106, .14); }
+  100% { box-shadow: 0 0 0 18px rgba(201, 242, 106, 0); }
+}
+.song.is-linked, .anime-card.is-linked { animation: linkedGlow 3.5s ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .song-rank img, .anime-cover-img { filter: none; opacity: 1; }
+}
