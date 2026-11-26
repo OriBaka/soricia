@@ -59,6 +59,11 @@ Lưu ý: ảnh trong IndexedDB chỉ hiển thị trên **thiết bị đã thê
 
 Nếu sau này bạn bật Blaze: tạo bucket Storage, vào Storage → Rules dán `firebase/storage.rules` → **Publish**, rồi điền tên bucket vào `storageBucket` trong `data/config.js`. Ảnh mới sẽ tự đẩy lên `covers/...`; nếu upload lỗi thì vẫn rơi về IndexedDB.
 
+### Trạng thái “Chưa xem” và điểm tác giả trống
+- Anime có thêm trạng thái **Chưa xem** (mặc định cho mục mới), cạnh `Đang xem` và `Đã xem`. Chip lọc và nút đổi nhanh trên card đều có cả ba trạng thái, bấm nhiều lần sẽ xoay vòng `Chưa xem → Đang xem → Đã xem → Chưa xem`, luôn có **Hoàn tác**.
+- Ô **Điểm /10** của bài hát/anime có thể để trống — hiểu là **“chưa chấm”**, hiển thị `—`. Điểm trống không tính vào điểm trung bình và được xếp cuối khi chọn sort “Điểm cao nhất”.
+- Phiếu vote của người xem vẫn chỉ nhận `1–10`; để trống nghĩa là chưa vote, mục vẫn nằm trong chip **Chưa vote**.
+
 ### Nhóm B — tiện hơn khi dùng hằng ngày
 - Cả hai trang đều có thêm lựa chọn sắp xếp **Mới thêm**: mục có nhãn MỚI / vừa thêm lên đầu, kể cả khi chưa có điểm vote.
 - Chip lọc trạng thái anime hiện kèm **số lượng** (`Đã xem 12`, `Đang xem 3`). Trên mỗi card anime có nút đổi nhanh `▶ Đang xem` / `✓ Đã xem xong`; chủ web đổi là đăng luôn lên Firebase và có **Hoàn tác**.

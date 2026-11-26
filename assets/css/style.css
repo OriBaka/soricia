@@ -800,3 +800,5 @@ body[data-page="anime"] .showcase-card {
   .daily-box { max-width: 100%; }
   .daily-pick-title { font-size: 13px; }
 }
+
+.status-tag.is-unwatched { background: var(--surface-2); color: var(--muted); }
