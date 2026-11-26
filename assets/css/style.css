@@ -711,3 +711,25 @@ body[data-page="anime"] .showcase-card {
   background: var(--surface-2);
 }
 .bulk-list p { margin: 0 0 5px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+
+/* Phần 1: lọc trạng thái, badge mới, chia sẻ, làm nổi mục deep link. */
+.status-filters .chip { border-color: color-mix(in srgb, var(--violet) 45%, transparent); }
+.new-badge {
+  display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 99px;
+  background: color-mix(in srgb, var(--violet) 22%, transparent);
+  border: 1px solid color-mix(in srgb, var(--violet) 60%, transparent);
+  color: var(--violet); font-size: 9px; font-weight: 800; letter-spacing: .04em;
+}
+.share-btn {
+  padding: 3px 8px; border-radius: 7px; border: 1px solid var(--border-strong);
+  background: transparent; color: var(--muted); font-size: 11px; font-weight: 700;
+}
+.share-btn:hover { color: var(--accent); border-color: var(--accent); }
+.anime-card.is-linked, .song.is-linked {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  transition: outline-color .3s;
+}
+@media (max-width: 620px) {
+  .share-btn { min-height: 28px; }
+}
