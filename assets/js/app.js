@@ -15,6 +15,8 @@
   const COLLECTION_PATH = String(CONFIG.collectionPath || "collection").replace(/^\/+|\/+$/g, "");
   const AUTH_API_KEY = String(CONFIG.authApiKey || "").trim();
   const AUTH_ENABLED = !!FIREBASE_URL && !!AUTH_API_KEY && !/^THAY_/.test(AUTH_API_KEY);
+  const STORAGE_BUCKET = String(CONFIG.storageBucket || "").trim();
+  const STORAGE_ENABLED = !!STORAGE_BUCKET;
   const VOTES_ENABLED = !!FIREBASE_URL;
   const VOTER_KEY = "soricia.voter.token";
   const MY_VOTES_KEY = "soricia.my.votes";
@@ -60,7 +62,36 @@
     return imageDbPromise;
   }
 
+  async function uploadToStorage(dataUrl) {
+    if (!STORAGE_ENABLED || !AUTH_ENABLED) return null;
+    try {
+      const token = await ensureAuth();
+      const match = String(dataUrl).match(/^data:([^;,]+);base64,(.*)$/s);
+      if (!match) return null;
+      const mime = match[1];
+      const ext = ({ "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif" })[mime.toLowerCase()] || "jpg";
+      const name = "covers/" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8) + "." + ext;
+      const binary = atob(match[2]);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      const res = await fetch("https://firebasestorage.googleapis.com/v0/b/" + encodeURIComponent(STORAGE_BUCKET) + "/o?name=" + encodeURIComponent(name), {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + token, "Content-Type": mime },
+        body: bytes
+      });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const info = await res.json();
+      if (!info.name || !info.downloadTokens) throw new Error("phản hồi Storage không hợp lệ");
+      return "https://firebasestorage.googleapis.com/v0/b/" + STORAGE_BUCKET + "/o/" + encodeURIComponent(info.name)
+        + "?alt=media&token=" + info.downloadTokens;
+    } catch (e) {
+      console.warn("Không upload được ảnh lên Storage:", e);
+      return null;
+    }
+  }
+
   async function putImage(dataUrl) {
+    let ref = dataUrl;
     try {
       const key = "img-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
       const db = await openImageDb();
@@ -70,12 +101,15 @@
         tx.oncomplete = resolve;
         tx.onerror = () => reject(tx.error);
       });
-      const ref = "idb:" + key;
+      ref = "idb:" + key;
       imageCache.set(ref, dataUrl);
-      return ref;
-    } catch (e) {
-      return dataUrl; // fallback: vẫn lưu được như cũ nếu trình duyệt cấm IndexedDB
+    } catch (e) { /* IndexedDB bị chặn: vẫn giữ data URL */ }
+    const uploaded = await uploadToStorage(dataUrl);
+    if (uploaded) {
+      imageCache.set(uploaded, dataUrl);
+      return uploaded;
     }
+    return ref;
   }
 
   async function getImage(ref) {
@@ -107,8 +141,9 @@
     for (const list of [songs, anime]) {
       for (const item of list) {
         if (isDataImage(item.image)) {
-          const ref = await putImage(item.image);
-          if (isIdbImage(ref)) item.image = ref;
+          const original = item.image;
+          const ref = await putImage(original);
+          if (ref !== original) item.image = ref;
         }
       }
     }
