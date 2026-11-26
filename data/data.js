@@ -3,7 +3,7 @@ window.SITE_DATA = {
   "version": "2026-11-25T11:02:14Z",
   "profile": {
     "name": "Soricia",
-    "tagline": "Những bản nhạc và thế giới tôi ở lại."
+    "tagline": "Nhạc và anime do cộng đồng khám phá, cùng chấm điểm."
   },
   "songs": [
     {

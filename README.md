@@ -1,6 +1,6 @@
-# Soricia — nhạc & anime của tôi
+# Soricia — nhạc & anime do cộng đồng bình chọn
 
-Trang web cá nhân gồm hai trang riêng: `index.html` (nhạc) và `anime.html` (anime), dùng chung CSS/JS, dữ liệu và bảng quản lý.
+Trang web gồm hai trang riêng: `index.html` (nhạc) và `anime.html` (anime), dùng chung CSS/JS, dữ liệu và bảng quản lý.
 Chạy hoàn toàn bằng HTML/CSS/JavaScript tĩnh, không cần cài đặt hay build.
 
 **Website:** https://oribaka.github.io/soricia/
@@ -65,7 +65,7 @@ Nếu sau này bạn bật Blaze: tạo bucket Storage, vào Storage → Rules d
 - Khi thêm lẻ, web báo ngay nếu trùng tên + nghệ sĩ/tên phụ với mục đã có; vẫn cho phép sửa chính mục đó.
 - **Nhật ký chủ web** ghi lại thêm/sửa/xoá/đổi trạng thái/thêm hàng loạt/nhập dữ liệu/khôi phục/đăng lên web/dọn ảnh, kèm `updatedAt` trên từng mục. Nhật ký **chỉ lưu trong trình duyệt của chủ web** và chỉ hiện trong tab Dữ liệu sau khi đăng nhập — không đẩy lên Firebase, nên khách xem thường không thấy. Tối đa 60 dòng gần nhất, có nút xoá.
 
-### Trạng thái “Chưa xem” và điểm tác giả trống
+### Trạng thái “Chưa xem” và điểm gốc trống
 - Anime có thêm trạng thái **Chưa xem** (mặc định cho mục mới), cạnh `Đang xem` và `Đã xem`. Chip lọc và nút đổi nhanh trên card đều có cả ba trạng thái, bấm nhiều lần sẽ xoay vòng `Chưa xem → Đang xem → Đã xem → Chưa xem`, luôn có **Hoàn tác**.
 - Ô **Điểm /10** của bài hát/anime có thể để trống — hiểu là **“chưa chấm”**, hiển thị `—`. Điểm trống không tính vào điểm trung bình và được xếp cuối khi chọn sort “Điểm cao nhất”.
 - Phiếu vote của người xem vẫn chỉ nhận `1–10`; để trống nghĩa là chưa vote, mục vẫn nằm trong chip **Chưa vote**.
@@ -88,7 +88,7 @@ Nếu sau này bạn bật Blaze: tạo bucket Storage, vào Storage → Rules d
 
 ## Bình chọn của người xem (Firebase Realtime Database)
 
-Khách bấm vào ô chấm điểm (ô text lớn, hiện bàn phím số trên điện thoại), gõ điểm 1–10 (có thể lẻ như `8.5` hoặc `8,5`) rồi bấm **Gửi**. Web hiển thị **điểm trung bình cộng đồng** ở trên và **điểm của tác giả** bên dưới. Mỗi trình duyệt có một mã ngẫu nhiên nên chỉ một phiếu cho mỗi bài, nhưng **có thể gửi lại để sửa điểm** bất kỳ lúc nào — nút sẽ đổi thành **Sửa**.
+Khách bấm vào ô chấm điểm (ô text lớn, hiện bàn phím số trên điện thoại), gõ điểm 1–10 (có thể lẻ như `8.5` hoặc `8,5`) rồi bấm **Gửi**. Web hiển thị **điểm trung bình cộng đồng** ở trên và **điểm gốc** bên dưới. Mỗi trình duyệt có một mã ngẫu nhiên nên chỉ một phiếu cho mỗi bài, nhưng **có thể gửi lại để sửa điểm** bất kỳ lúc nào — nút sẽ đổi thành **Sửa**.
 
 Cài đặt một lần:
 
@@ -104,7 +104,7 @@ window.SITE_CONFIG = {
 };
 ```
 
-5. Commit/push lên `main`. Nếu `firebaseUrl` để trống, web vẫn chạy và chỉ hiện điểm tác giả.
+5. Commit/push lên `main`. Nếu `firebaseUrl` để trống, web vẫn chạy và chỉ hiện điểm gốc.
 
 Rules chỉ cho phép khách đọc bảng `votes` và ghi số từ 1–10 vào từng lượt chấm; không cho xoá hoặc ghi dữ liệu ngoài phạm vi đó. URL database là thông tin công khai, không phải secret.
 
@@ -112,8 +112,8 @@ Rules chỉ cho phép khách đọc bảng `votes` và ghi số từ 1–10 vào
 
 Phần Âm nhạc có 2 tab:
 
-- **Bảng xếp hạng**: xếp theo **điểm trung bình vote cộng đồng** (mặc định), hiện điểm trung bình, điểm của tác giả và ô chấm điểm. Mỗi bài có số hạng riêng `#01`, `#02`… (không chia sẻ hạng). Các bài cùng điểm được xếp ngẫu nhiên với nhau; thứ tự ngẫu nhiên này được lưu trong trình duyệt để không đổi mỗi lần tải lại. Có thể đổi kiểu sắp xếp bằng ô “Sắp xếp bài hát”. Cạnh bộ lọc thể loại có thêm 3 chip **Tất cả / Đã vote / Chưa vote** (kèm số bài), dùng được ở cả hai tab; tab Vote còn có thanh tiến độ “Bạn đã chấm X/Y bài”. Sau khi gửi điểm, bài đó vẫn hiện lại tại chỗ để bạn kịp xem điểm, cho đến khi đổi bộ lọc.
-- **Vote nhạc**: ẩn điểm cộng đồng, điểm tác giả, thanh điểm và ô thống kê điểm trung bình. Mỗi bài chỉ hiện ô chấm 1–10; sau khi bạn bấm **Gửi**, bài đó mới lộ điểm trung bình, điểm tác giả và cho phép **Sửa** điểm. Các bài chưa chấm vẫn giấu điểm. Tab này tự sắp theo thứ hạng có sẵn để không lộ điểm qua thứ tự sắp xếp; quay lại **Bảng xếp hạng** sẽ khôi phục kiểu sắp xếp cũ.
+- **Bảng xếp hạng**: xếp theo **điểm trung bình vote cộng đồng** (mặc định), hiện điểm trung bình, điểm gốc và ô chấm điểm. Mỗi bài có số hạng riêng `#01`, `#02`… (không chia sẻ hạng). Các bài cùng điểm được xếp ngẫu nhiên với nhau; thứ tự ngẫu nhiên này được lưu trong trình duyệt để không đổi mỗi lần tải lại. Có thể đổi kiểu sắp xếp bằng ô “Sắp xếp bài hát”. Cạnh bộ lọc thể loại có thêm 3 chip **Tất cả / Đã vote / Chưa vote** (kèm số bài), dùng được ở cả hai tab; tab Vote còn có thanh tiến độ “Bạn đã chấm X/Y bài”. Sau khi gửi điểm, bài đó vẫn hiện lại tại chỗ để bạn kịp xem điểm, cho đến khi đổi bộ lọc.
+- **Vote nhạc**: ẩn điểm cộng đồng, điểm gốc, thanh điểm và ô thống kê điểm trung bình. Mỗi bài chỉ hiện ô chấm 1–10; sau khi bạn bấm **Gửi**, bài đó mới lộ điểm trung bình, điểm gốc và cho phép **Sửa** điểm. Các bài chưa chấm vẫn giấu điểm. Tab này tự sắp theo thứ hạng có sẵn để không lộ điểm qua thứ tự sắp xếp; quay lại **Bảng xếp hạng** sẽ khôi phục kiểu sắp xếp cũ.
 
 Phần Anime dùng **cùng cơ chế 2 tab** (`Bảng xếp hạng` / `Vote anime`): xếp theo điểm vote cộng đồng, số hạng riêng `#01`, cùng điểm thì trộn ngẫu nhiên, chip lọc **Tất cả / Đã vote / Chưa vote**, và tab Vote giấu điểm + sao cho đến khi bạn gửi phiếu. Phiếu anime được lưu riêng (`anime-<tên bộ>`) trên Firebase nên không lẫn với phiếu bài hát.
 
