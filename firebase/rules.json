@@ -7,6 +7,10 @@
           ".write": "auth == null && newData.isNumber() && newData.val() >= 1 && newData.val() <= 10"
         }
       }
+    },
+    "collection": {
+      ".read": true,
+      ".write": "auth != null && auth.token.email == 'THAY_EMAIL_CHU_WEB@example.com'"
     }
   }
 }

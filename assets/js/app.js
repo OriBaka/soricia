@@ -12,14 +12,21 @@
   const CONFIG = window.SITE_CONFIG || {};
   const FIREBASE_URL = String(CONFIG.firebaseUrl || "").replace(/\/+$/, "");
   const VOTES_PATH = String(CONFIG.votesPath || "votes").replace(/^\/+|\/+$/g, "");
+  const COLLECTION_PATH = String(CONFIG.collectionPath || "collection").replace(/^\/+|\/+$/g, "");
+  const AUTH_API_KEY = String(CONFIG.authApiKey || "").trim();
+  const AUTH_ENABLED = !!FIREBASE_URL && !!AUTH_API_KEY && !/^THAY_/.test(AUTH_API_KEY);
   const VOTES_ENABLED = !!FIREBASE_URL;
   const VOTER_KEY = "soricia.voter.token";
   const MY_VOTES_KEY = "soricia.my.votes";
   const MY_ANIME_VOTES_KEY = "soricia.my.anime.votes";
   const OWNER_KEY = "soricia.owner.mode";
+  const AUTH_KEY = "soricia.auth";
+  const AUTH_BASE = "https://identitytoolkit.googleapis.com/v1/accounts";
   const PLAYER_POS_KEY = "soricia.player.pos";
   const TIE_KEY = "soricia.rank.ties";
-  const OWNER_MODE = initOwnerMode();
+  let auth = loadAuth();
+  let OWNER_MODE = initOwnerMode();
+  let managerVisible = OWNER_MODE || (new URLSearchParams(window.location.search).get("admin") !== null && new URLSearchParams(window.location.search).get("admin") !== "0");
   let ratings = {};
   let animeRatings = {};
   let ratingsStatus = VOTES_ENABLED ? "loading" : "off";
@@ -185,16 +192,41 @@
   const pendingImages = { song: null, anime: null };
   let lastFocused = null;
 
+  function loadAuth() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(AUTH_KEY) || "null");
+      return raw && raw.idToken ? raw : null;
+    } catch (e) { return null; }
+  }
+
+  function saveAuth() {
+    try {
+      if (auth) localStorage.setItem(AUTH_KEY, JSON.stringify(auth));
+      else localStorage.removeItem(AUTH_KEY);
+    } catch (e) { /* ignore */ }
+  }
+
+  function authValid() {
+    return !!(auth && auth.idToken && (!auth.expiresAt || auth.expiresAt > Date.now()));
+  }
+
   function initOwnerMode() {
     const params = new URLSearchParams(window.location.search);
-    if (params.has("admin")) {
-      try {
-        if (params.get("admin") === "0") localStorage.removeItem(OWNER_KEY);
-        else localStorage.setItem(OWNER_KEY, "1");
-      } catch (e) { /* ignore */ }
+    if (params.get("admin") === "0" && AUTH_ENABLED) {
+      auth = null;
+      saveAuth();
     }
-    let enabled = false;
-    try { enabled = localStorage.getItem(OWNER_KEY) === "1"; } catch (e) { /* ignore */ }
+    let enabled;
+    if (AUTH_ENABLED) enabled = authValid();
+    else {
+      if (params.has("admin")) {
+        try {
+          if (params.get("admin") === "0") localStorage.removeItem(OWNER_KEY);
+          else localStorage.setItem(OWNER_KEY, "1");
+        } catch (e) { /* ignore */ }
+      }
+      try { enabled = localStorage.getItem(OWNER_KEY) === "1"; } catch (e) { enabled = false; }
+    }
     document.body.classList.toggle("owner-mode", enabled);
     return enabled;
   }
@@ -234,8 +266,122 @@
     return token;
   }
 
-  function firebaseUrl(path) {
-    return FIREBASE_URL + "/" + String(path || "").replace(/^\/+/, "") + ".json";
+  function firebaseUrl(path, token) {
+    const authParam = token ? "?auth=" + encodeURIComponent(token) : "";
+    return FIREBASE_URL + "/" + String(path || "").replace(/^\/+/, "") + ".json" + authParam;
+  }
+
+  async function authRequest(endpoint, body) {
+    const res = await fetch(AUTH_BASE + "/" + endpoint + "?key=" + encodeURIComponent(AUTH_API_KEY), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.error) throw new Error((data.error && data.error.message) || "HTTP " + res.status);
+    return data;
+  }
+
+  async function ensureAuth() {
+    if (!auth || !auth.idToken) throw new Error("Chưa đăng nhập chủ web.");
+    if (auth.expiresAt && auth.expiresAt - 60000 <= Date.now()) {
+      if (!auth.refreshToken) throw new Error("Phiên đăng nhập hết hạn. Đăng nhập lại nhé.");
+      const data = await authRequest("accounts:refreshToken", {
+        grant_type: "refresh_token", refresh_token: auth.refreshToken
+      });
+      auth.idToken = data.id_token || data.idToken;
+      auth.expiresAt = Date.now() + (Number(data.expires_in || data.expiresIn) || 3600) * 1000;
+      saveAuth();
+    }
+    return auth.idToken;
+  }
+
+  async function signInOwner(email, password) {
+    const data = await authRequest("accounts:signInWithPassword", {
+      email, password, returnSecureToken: true
+    });
+    auth = {
+      idToken: data.idToken,
+      refreshToken: data.refreshToken,
+      email: data.email || email,
+      expiresAt: Date.now() + (Number(data.expiresIn) || 3600) * 1000
+    };
+    saveAuth();
+    OWNER_MODE = true;
+    managerVisible = true;
+    applyOwnerUi();
+    renderAll();
+    await pullRemoteCollection();
+  }
+
+  function signOutOwner() {
+    auth = null;
+    saveAuth();
+    OWNER_MODE = false;
+    const params = new URLSearchParams(window.location.search);
+    managerVisible = params.has("admin") && params.get("admin") !== "0";
+    applyOwnerUi();
+    renderAll();
+    toast("Đã đăng xuất chủ web.");
+  }
+
+  function applyOwnerUi() {
+    document.body.classList.toggle("owner-mode", OWNER_MODE);
+    const manage = $("#manage-btn");
+    if (manage) manage.hidden = !managerVisible;
+    document.querySelectorAll("[data-open-editor]").forEach((btn) => { btn.hidden = !OWNER_MODE; });
+    document.querySelectorAll(".owner-only").forEach((el) => { el.hidden = !OWNER_MODE; });
+    const box = $("#auth-box");
+    if (box) box.hidden = !managerVisible || !AUTH_ENABLED;
+    const tabs = document.querySelector(".panel-tabs");
+    if (tabs) tabs.hidden = !OWNER_MODE;
+    const signin = $("#auth-signin");
+    if (signin) signin.hidden = OWNER_MODE;
+    const signout = $("#auth-signout");
+    if (signout) signout.hidden = !OWNER_MODE;
+    const publish = $("#auth-publish");
+    if (publish) publish.hidden = !OWNER_MODE;
+    const status = $("#auth-status");
+    if (status && !OWNER_MODE) { status.hidden = true; status.textContent = ""; }
+  }
+
+  function collectionPayload(collection) {
+    const source = collection || { songs, anime };
+    return {
+      version: currentVersion,
+      profile: SEED.profile || {},
+      songs: source.songs.map(toPublic),
+      anime: source.anime.map(toPublic)
+    };
+  }
+
+  async function pullRemoteCollection() {
+    if (!AUTH_ENABLED || !FIREBASE_URL || !COLLECTION_PATH) return;
+    try {
+      const res = await fetch(firebaseUrl(COLLECTION_PATH));
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data || !Array.isArray(data.songs) || !Array.isArray(data.anime)) return;
+      if (data.version) currentVersion = data.version;
+      songs = normalize(data.songs, "song");
+      anime = normalize(data.anime, "anime");
+      save();
+      renderAll();
+    } catch (e) {
+      console.warn("Không tải được danh sách từ Firebase:", e);
+    }
+  }
+
+  async function pushRemoteCollection(collection) {
+    if (!AUTH_ENABLED || !COLLECTION_PATH) return false;
+    const token = await ensureAuth();
+    const res = await fetch(firebaseUrl(COLLECTION_PATH, token), {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(collectionPayload(collection))
+    });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    return true;
   }
 
   async function loadRatings() {
@@ -900,12 +1046,16 @@
   }
 
   function openPanel(tab, id) {
-    if (!OWNER_MODE) return;
+    if (!managerVisible) return;
     lastFocused = document.activeElement;
     $("#panel-backdrop").hidden = false;
     document.body.classList.add("panel-open");
     $("#admin-panel").setAttribute("aria-hidden", "false");
-    if (id) openEditor(tab, id);
+    if (!OWNER_MODE) {
+      $("#song-form").hidden = true;
+      $("#anime-form").hidden = true;
+      $("#data-tools").hidden = true;
+    } else if (id) openEditor(tab, id);
     else { setTab(tab); resetForm(tab); }
     setTimeout(() => {
       const first = $("#admin-panel").querySelector(".editor-form:not([hidden]) input:not([type=hidden])");
@@ -920,7 +1070,8 @@
     if (lastFocused && lastFocused.focus) lastFocused.focus();
   }
 
-  function submitForm(type) {
+  async function submitForm(type) {
+    if (!OWNER_MODE) { toast("Đăng nhập chủ web để thay đổi danh sách."); return; }
     const list = type === "song" ? songs : anime;
     const title = $("#" + type + "-title").value.trim();
     const genre = $("#" + type + "-genre").value.trim();
@@ -957,12 +1108,27 @@
       item.status = $("#anime-status").value;
     }
     const next = pos >= 0 ? list.map((x, i) => i === pos ? item : x) : [...list, item];
-    if (!save(type === "song" ? { songs: next, anime } : { songs, anime: next })) {
-      formError(type, "Không lưu được vào trình duyệt. Xoá bớt ảnh đã thêm hoặc tải file JSON dự phòng rồi thử lại.");
-      return;
+    const collection = type === "song" ? { songs: next, anime } : { songs, anime: next };
+    if (AUTH_ENABLED) {
+      currentVersion = new Date().toISOString();
+      try {
+        await pushRemoteCollection(collection);
+      } catch (e) {
+        formError(type, "Không đăng được lên web: " + e.message + ". Kiểm tra đăng nhập và Rules Firebase.");
+        toast("Không đăng được lên web.");
+        return;
+      }
+      if (type === "song") songs = next;
+      else anime = next;
+      if (!save()) toast("Đã đăng lên web, nhưng máy không lưu được bộ nhớ.");
+    } else {
+      if (!save(collection)) {
+        formError(type, "Không lưu được vào trình duyệt. Xoá bớt ảnh đã thêm hoặc tải file JSON dự phòng rồi thử lại.");
+        return;
+      }
+      if (type === "song") songs = next;
+      else anime = next;
     }
-    if (type === "song") songs = next;
-    else anime = next;
     // Luôn đưa mục vừa thêm về danh sách mặc định, kể cả khi đang lọc/tìm kiếm.
     const prefix = type === "song" ? "song" : "anime";
     state[prefix + "VoteFilter"] = "all";
@@ -973,19 +1139,36 @@
     justVoted[type].clear();
     renderAll();
     resetForm(type);
-    toast(pos >= 0 ? "Đã lưu thay đổi." : "Đã thêm vào danh sách.");
+    toast(AUTH_ENABLED
+      ? "Đã đăng lên web — mọi người thấy ngay."
+      : (pos >= 0 ? "Đã lưu thay đổi." : "Đã thêm vào danh sách."));
   }
 
-  function deleteItem(type, id) {
+  async function deleteItem(type, id) {
+    if (!OWNER_MODE) { toast("Đăng nhập chủ web để xoá."); return; }
     const list = type === "song" ? songs : anime;
     const item = list.find((x) => x.id === id);
     if (!item || !window.confirm('Xoá "' + item.title + '" khỏi danh sách?')) return;
     const next = list.filter((x) => x.id !== id).map((x, i) => ({ ...x, index: i }));
-    if (!save(type === "song" ? { songs: next, anime } : { songs, anime: next })) return;
-    if (type === "song") songs = next;
-    else anime = next;
+    const collection = type === "song" ? { songs: next, anime } : { songs, anime: next };
+    if (AUTH_ENABLED) {
+      currentVersion = new Date().toISOString();
+      try {
+        await pushRemoteCollection(collection);
+      } catch (e) {
+        toast("Không xoá được trên web: " + e.message);
+        return;
+      }
+      if (type === "song") songs = next;
+      else anime = next;
+      save();
+    } else {
+      if (!save(collection)) return;
+      if (type === "song") songs = next;
+      else anime = next;
+    }
     renderAll();
-    toast("Đã xoá khỏi danh sách.");
+    toast(AUTH_ENABLED ? "Đã xoá trên web." : "Đã xoá khỏi danh sách.");
   }
 
   function downloadFile(content, filename, mime) {
@@ -999,6 +1182,38 @@
 
   function initManager() {
     $("#manage-btn").addEventListener("click", () => openPanel(HAS_ANIME && !HAS_MUSIC ? "anime" : "song"));
+    if (AUTH_ENABLED) {
+      $("#auth-signin").addEventListener("click", async () => {
+        const status = $("#auth-status");
+        const email = $("#auth-email").value.trim();
+        const password = $("#auth-password").value;
+        if (!email || !password) {
+          status.textContent = "Nhập cả email và mật khẩu nhé.";
+          status.hidden = false;
+          return;
+        }
+        status.hidden = true;
+        try {
+          await signInOwner(email, password);
+          $("#auth-password").value = "";
+          toast("Đã đăng nhập chủ web.");
+        } catch (e) {
+          status.textContent = "Đăng nhập không được: " + e.message;
+          status.hidden = false;
+        }
+      });
+      $("#auth-signout").addEventListener("click", signOutOwner);
+      $("#auth-publish").addEventListener("click", async () => {
+        currentVersion = new Date().toISOString();
+        try {
+          await pushRemoteCollection();
+          save();
+          toast("Đã đăng danh sách hiện tại lên web.");
+        } catch (e) {
+          toast("Không đăng được: " + e.message);
+        }
+      });
+    }
     $("#panel-close").addEventListener("click", closePanel);
     $("#panel-backdrop").addEventListener("click", closePanel);
     document.addEventListener("keydown", (e) => {
@@ -1180,11 +1395,7 @@
     if (initialized) return;
     initialized = true;
     initTheme();
-    if (!OWNER_MODE) {
-      $("#manage-btn").hidden = true;
-      document.querySelectorAll("[data-open-editor]").forEach((btn) => { btn.hidden = true; });
-      document.querySelectorAll(".owner-only").forEach((el) => { el.hidden = true; });
-    }
+    applyOwnerUi();
     initManager();
     initPlayerDrag();
     const year = new Date().getFullYear();
@@ -1206,6 +1417,7 @@
     }
     renderAll();
     loadRatings();
+    if (AUTH_ENABLED) pullRemoteCollection();
     initReveal();
   }
 

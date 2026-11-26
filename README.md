@@ -40,6 +40,23 @@ Bạn có thể để file `data.js` trên Google Drive và nhắn mình cập n
 
 Ảnh trong `data.js` có thể là `data:image/...` (đã nén) hoặc URL `https://` công khai; ảnh chỉ nằm riêng trong Drive sẽ không tải được trên web công khai.
 
+## Tự động cập nhật lên web (không cần sửa file / nhắn mình)
+
+Sau khi cấu hình, mỗi lần **Thêm / Sửa / Xoá** trong bảng Quản lý sẽ ghi thẳng lên Firebase. Khách truy cập thấy dữ liệu mới ngay, không cần commit `data.js` hay đợi Pages build.
+
+### Thiết lập 1 lần trong Firebase Console
+1. **Authentication → Sign-in method** → bật **Email/Password**.
+2. **Authentication → Users → Add user** → tạo tài khoản chủ web (email + mật khẩu). Nhớ email này.
+3. **Project settings → Your apps → Web app** → copy **Web API key** (giá trị này public, không phải secret).
+4. **Realtime Database → Rules**: trong `firebase/rules.json`, thay `THAY_EMAIL_CHU_WEB@example.com` bằng email ở bước 2, rồi dán toàn bộ nội dung file vào tab Rules → **Publish**.
+5. Điền Web API key vào `data/config.js`, trường `authApiKey` (hoặc nhắn mình để mình điền và commit). Chưa điền thì web vẫn chạy chế độ lưu trong trình duyệt như cũ.
+
+### Cách dùng
+- Mở `https://oribaka.github.io/soricia/index.html?admin=1` (hoặc `anime.html?admin=1`) → bảng Quản lý hiện ô **Đăng nhập chủ web**.
+- Đăng nhập xong thì thêm/sửa/xoá như trước. Mỗi thay đổi được đẩy lên node `collection` trên Firebase kèm `version` mới, nên mọi trình duyệt tự lấy bản mới.
+- Lần đầu, bấm **Đăng danh sách hiện tại lên web** để đẩy dữ liệu bạn đang có lên Firebase.
+- Khách bình thường không cần `?admin=1`: họ chỉ thấy nút vote và dữ liệu mới nhất. Đăng xuất bằng nút **Đăng xuất** trong bảng Quản lý.
+
 ## Bình chọn của người xem (Firebase Realtime Database)
 
 Khách bấm vào ô chấm điểm (ô text lớn, hiện bàn phím số trên điện thoại), gõ điểm 1–10 (có thể lẻ như `8.5` hoặc `8,5`) rồi bấm **Gửi**. Web hiển thị **điểm trung bình cộng đồng** ở trên và **điểm của tác giả** bên dưới. Mỗi trình duyệt có một mã ngẫu nhiên nên chỉ một phiếu cho mỗi bài, nhưng **có thể gửi lại để sửa điểm** bất kỳ lúc nào — nút sẽ đổi thành **Sửa**.
