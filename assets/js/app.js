@@ -520,16 +520,28 @@
     return currentVoteIdentity();
   }
 
+  function ownerSignedIn() {
+    return OWNER_MODE && isOwnerEmail(auth && auth.email);
+  }
+
   function applyViewerUi() {
     const label = $("#account-label");
     const signout = $("#account-signout");
     const signup = $("#account-signup");
     const signin = $("#account-signin");
     const resync = $("#account-resync");
-    if (label) label.textContent = viewerSignedIn() ? (viewerAuth.email || "Tài khoản").split("@")[0] : "Đăng nhập";
+    const owner = ownerSignedIn();
+    if (label) label.textContent = viewerSignedIn()
+      ? (viewerAuth.email || "Tài khoản").split("@")[0]
+      : owner ? "Quản lý" : "Đăng nhập";
     const button = $("#account-btn");
-    if (button) button.title = viewerSignedIn() ? viewerAuth.email : "Đăng nhập / tạo tài khoản để bình luận và giữ phiếu vote";
-    if (signout) signout.hidden = !viewerSignedIn();
+    if (button) button.title = viewerSignedIn() ? viewerAuth.email
+      : owner ? "Đang ở chế độ quản lý" : "Đăng nhập / tạo tài khoản để bình luận và giữ phiếu vote";
+    if (signout) {
+      signout.hidden = !viewerSignedIn() && !owner;
+      signout.textContent = viewerSignedIn() && owner ? "Đăng xuất tất cả"
+        : owner ? "Đăng xuất quản lý" : "Đăng xuất";
+    }
     if (signup) signup.hidden = viewerSignedIn();
     if (signin) signin.hidden = viewerSignedIn();
     if (resync) resync.hidden = !viewerSignedIn();
@@ -645,18 +657,18 @@
     return finishViewerAuth(false);
   }
 
-  function signOutViewer() {
+  function signOutViewer(silent) {
     viewerAuth = null;
     saveViewerAuth();
     applyViewerUi();
-    toast("Đã đăng xuất tài khoản người xem.");
+    if (!silent) toast("Đã đăng xuất tài khoản người xem.");
   }
 
   function openAccountModal(hint) {
     const modal = $("#account-modal");
     if (!modal) return;
     const note = $("#account-hint");
-    if (note) note.textContent = hint || "Tạo tài khoản để bình luận và gửi điểm. Những phiếu bạn đã vote trước đó sẽ tự động chuyển sang tài khoản — không bị mất.";
+    if (note) note.textContent = hint || "Tạo tài khoản để bình luận và gửi điểm. Những phiếu bạn đã vote trước đó sẽ tự động chuyển sang tài khoản — không bị mất. Email quản lý dùng nút Đăng nhập để vào bảng quản lý.";
     const status = $("#account-status");
     if (status) { status.hidden = true; status.textContent = ""; }
     modal.hidden = false;
@@ -824,6 +836,7 @@
     const data = await authRequest("accounts:signInWithPassword", {
       email, password, returnSecureToken: true
     });
+    if (!isOwnerEmail(data.email || email)) throw new Error("Email này không có quyền quản lý.");
     auth = {
       idToken: data.idToken,
       refreshToken: data.refreshToken,
@@ -834,19 +847,21 @@
     OWNER_MODE = true;
     managerVisible = true;
     applyOwnerUi();
+    applyViewerUi();
     renderAll();
     await pullRemoteCollection();
   }
 
-  function signOutOwner() {
+  function signOutOwner(silent) {
     auth = null;
     saveAuth();
     OWNER_MODE = false;
     const params = new URLSearchParams(window.location.search);
     managerVisible = params.has("admin") && params.get("admin") !== "0";
     applyOwnerUi();
+    applyViewerUi();
     renderAll();
-    toast("Đã đăng xuất chủ web.");
+    if (!silent) toast("Đã đăng xuất chủ web.");
   }
 
   function applyOwnerUi() {
@@ -2391,7 +2406,7 @@
         return;
       }
       if (isOwnerEmail(email)) {
-        accountStatus("Email này dùng cho bảng quản lý. Vui lòng dùng email khác để tạo tài khoản người xem.");
+        accountStatus("Email này dùng cho bảng quản lý. Bấm Đăng nhập để vào chế độ quản lý, hoặc dùng email khác để tạo tài khoản người xem.");
         return;
       }
       accountStatus("");
@@ -2412,7 +2427,17 @@
       const password = $("#account-password").value;
       if (!email || !password) { accountStatus("Nhập cả email và mật khẩu nhé."); return; }
       if (isOwnerEmail(email)) {
-        accountStatus("Email này dùng cho bảng quản lý. Vui lòng dùng email khác để đăng nhập người xem.");
+        accountStatus("");
+        try {
+          await signInOwner(email, password);
+          applyViewerUi();
+          accountStatus("Đăng nhập quản lý thành công! Bạn đang ở chế độ chủ web.", "success");
+          if (activeComment) renderComments();
+        } catch (e) {
+          const reason = /INVALID_PASSWORD|EMAIL_NOT_FOUND|INVALID_LOGIN_CREDENTIALS/i.test(e.message)
+            ? "Sai email hoặc mật khẩu." : e.message;
+          accountStatus("Đăng nhập quản lý không được: " + reason);
+        }
         return;
       }
       accountStatus("");
@@ -2429,9 +2454,14 @@
       } catch (e) { accountStatus("Đăng nhập không được: " + e.message); }
     });
     $("#account-signout").addEventListener("click", () => {
-      signOutViewer();
+      const owner = ownerSignedIn();
+      const viewer = viewerSignedIn();
+      if (owner) signOutOwner(true);
+      if (viewer) signOutViewer(true);
+      applyViewerUi();
       closeAccountModal();
       if (activeComment) renderComments();
+      toast("Đã đăng xuất.");
     });
     $("#account-resync").addEventListener("click", async () => {
       if (!viewerSignedIn()) return;
