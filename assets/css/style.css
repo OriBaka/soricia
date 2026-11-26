@@ -931,3 +931,9 @@ body[data-page="anime"] .showcase-card {
   }
   .song-rank img, .anime-cover-img { filter: none; opacity: 1; }
 }
+
+.form-status.is-success {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+}
