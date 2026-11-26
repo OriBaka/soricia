@@ -183,7 +183,8 @@
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
   })[ch]);
   const fold = (value) => String(value ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-  const fmt = (score) => Number(score || 0).toFixed(1);
+  const fmt = (score) => (score == null || score === "" || !Number.isFinite(Number(score)))
+    ? "—" : Number(score).toFixed(1);
 
   // Ảnh bìa có sẵn trong data/data.js — không cần nhét lại vào localStorage (dễ vượt hạn mức ~5MB).
   const SEED_SENTINEL = "__from_data_js__";
@@ -212,7 +213,12 @@
     songs: (data && data.songs ? data.songs : []).map((x) => expandItem(x, "song")),
     anime: (data && data.anime ? data.anime : []).map((x) => expandItem(x, "anime"))
   });
-  const clampScore = (value) => Math.min(10, Math.max(0, Number(value) || 0));
+  const normalizeScore = (value) => {
+    if (value == null || String(value).trim() === "") return null;
+    const number = Number(String(value).replace(",", "."));
+    return Number.isFinite(number) ? Math.min(10, Math.max(0, number)) : null;
+  };
+  const animeStatus = (item) => (item && item.status ? item.status : "Đã xem");
   function youtubeId(value) {
     const text = String(value ?? "").trim();
     if (/^[\w-]{11}$/.test(text)) return text;
@@ -243,7 +249,7 @@
       clean.id = clean.id || uid(prefix);
       clean.index = i;
       clean.rank = Number(clean.rank) || i + 1;
-      clean.score = clampScore(clean.score);
+      clean.score = normalizeScore(clean.score);
       if (!clean.genre) clean.genre = "Khác";
       if (clean.image && !/^(data:image\/|idb:|https?:\/\/|\.{0,2}\/|assets\/)/i.test(clean.image)) clean.image = null;
       clean.youtube = youtubeId(clean.youtube) || null;
@@ -702,7 +708,8 @@
     const countText = rating && rating.count ? rating.count + " lượt chấm" : "chưa có lượt chấm";
     const existing = mine[key];
     const blind = view === "vote" && existing == null;
-    const stars = kind === "anime" && !blind
+    const authorScore = song.score == null ? "—" : fmt(song.score);
+    const stars = kind === "anime" && !blind && song.score != null
       ? `<span class="stars" aria-label="${Math.round((song.score || 0) / 2)}/5 sao">${"★".repeat(Math.round((song.score || 0) / 2))}${"☆".repeat(5 - Math.round((song.score || 0) / 2))}</span>`
       : "";
     const scoreInfo = blind
@@ -710,7 +717,7 @@
       : `${stars}
          <strong>${avg}</strong>
          <small>điểm trung bình · ${countText}</small>
-         <div class="author-score">Điểm của tác giả: <b>${fmt(song.score)}</b></div>`;
+         <div class="author-score">Điểm của tác giả: <b>${authorScore}</b></div>`;
     const status = !blind && ratingsStatus === "error" ? `<span class="vote-note">Chưa tải được điểm cộng đồng.</span>` : "";
     return `
       <div class="song-score${kind === "anime" ? " anime-vote" : ""}">
@@ -876,7 +883,7 @@
       const r = (kind === "anime" ? animeRatings : ratings)[voteKey(song, kind)];
       return r && r.count ? Number(fmt(r.avg)) : -1;
     }
-    return Number(fmt(song.score)) || 0;
+    return song.score == null ? -1 : (Number(fmt(song.score)) || 0);
   }
 
   function sortItems(items, mode, kind = "song") {
@@ -906,7 +913,7 @@
       if (voteFilter === "voted" && mine[key] == null) return false;
       if (voteFilter === "unvoted" && mine[key] != null && !justVoted[kind].has(key)) return false;
       if (kind === "anime" && state.animeStatusFilter !== "Tất cả"
-        && (item.status || "Đã xem") !== state.animeStatusFilter) return false;
+        && animeStatus(item) !== state.animeStatusFilter) return false;
       if (!q) return true;
       return fold([item.title, item.artist, item.genre, item.alt, item.note].filter(Boolean).join(" ")).includes(q);
     });
@@ -1058,7 +1065,7 @@
           <div class="song-meta">
             <span class="genre-badge">${esc(song.genre)}</span>
             ${song.year ? `<span>${esc(song.year)}</span>` : ""}
-            <span class="meter" title="Điểm ${fmt(song.score)}/10"><span style="width:${Math.min(100, Math.max(0, song.score * 10))}%"></span></span>
+            <span class="meter" title="${song.score == null ? "Chưa chấm" : "Điểm " + fmt(song.score) + "/10"}"><span style="width:${Math.min(100, Math.max(0, (Number(song.score) || 0) * 10))}%"></span></span>
           </div>
           ${actionsFor("song", song)}
           <div class="listen-row">
@@ -1120,13 +1127,15 @@
     $("#anime-list").innerHTML = items.map((show, i) => {
       const [from, to] = paletteFor(show.title);
       const cover = displayImage(show);
-      const watching = fold(show.status).includes("dang");
+      const status = animeStatus(show);
+      const watching = status === "Đang xem";
+      const unwatched = status === "Chưa xem";
       const meta = [...genresOf(show), show.year ? String(show.year) : null, show.episodes ? show.episodes + " tập" : null].filter(Boolean);
       return `
         <article class="anime-card" data-item-id="${esc(show.id)}">
           <div class="anime-cover" style="--c1:${from};--c2:${to}">
             ${cover ? `<img class="anime-cover-img" src="${esc(cover)}" alt="">` : ""}
-            <span class="status-tag${watching ? " is-watching" : ""}">${esc(show.status || "Đã xem")}</span>
+            <span class="status-tag${watching ? " is-watching" : ""}${unwatched ? " is-unwatched" : ""}">${esc(status)}</span>
             <span class="anime-cover-rank">#${String(i + 1).padStart(2, "0")}</span>
             <span class="anime-initials">${esc(initialsFor(show.title))}</span>
           </div>
@@ -1136,7 +1145,7 @@
             ${show.alt ? `<p class="anime-sub">${esc(show.alt)}</p>` : ""}
             <p class="anime-sub">${esc(meta.join(" · "))}</p>
             ${show.note ? `<p class="anime-note">${esc(show.note)}</p>` : ""}
-            <button type="button" class="status-toggle" data-status-toggle="${esc(show.id)}">${watching ? "✓ Đã xem xong" : "▶ Đang xem"}</button>
+            <button type="button" class="status-toggle" data-status-toggle="${esc(show.id)}">${status === "Chưa xem" ? "▶ Bắt đầu xem" : watching ? "✓ Đã xem xong" : "↺ Chưa xem"}</button>
             <button type="button" class="share-btn" data-share="anime" data-share-key="${esc(voteKey(show, "anime"))}" aria-label="Chia sẻ anime ${esc(show.title)}">🔗 Chia sẻ</button>
             ${actionsFor("anime", show)}
             ${scoreBlock(show, "anime")}
@@ -1163,8 +1172,8 @@
   }
 
   function fillHeroAndStats() {
-    const bestSong = [...songs].sort((a, b) => (b.score || 0) - (a.score || 0))[0];
-    const bestAnime = [...anime].sort((a, b) => (b.score || 0) - (a.score || 0))[0];
+    const bestSong = [...songs].sort((a, b) => (Number(b.score ?? -1) - Number(a.score ?? -1)))[0];
+    const bestAnime = [...anime].sort((a, b) => (Number(b.score ?? -1) - Number(a.score ?? -1)))[0];
     if (HAS_MUSIC && $("#hero-song-title")) {
       if (bestSong) {
         $("#hero-song-title").textContent = bestSong.title;
@@ -1192,8 +1201,8 @@
       }
     }
     const shown = HAS_MUSIC && HAS_ANIME ? [...songs, ...anime] : HAS_MUSIC ? songs : anime;
-    const allScores = shown.map((item) => Number(item.score) || 0);
-    const avg = allScores.length ? allScores.reduce((a, b) => a + b, 0) / allScores.length : 0;
+    const allScores = shown.map((item) => normalizeScore(item.score)).filter((score) => score != null);
+    const avg = allScores.length ? allScores.reduce((a, b) => a + b, 0) / allScores.length : null;
     setStat("songs", songs.length);
     setStat("anime", anime.length);
     setStat("genres", new Set(shown.map((item) => item.genre).filter(Boolean)).size);
@@ -1237,7 +1246,7 @@
     if (HAS_MUSIC && state.songGenre !== "Tất cả" && !uniqueGenres(songs).includes(state.songGenre)) state.songGenre = "Tất cả";
     if (HAS_ANIME && state.animeGenre !== "Tất cả" && !uniqueGenres(anime).includes(state.animeGenre)) state.animeGenre = "Tất cả";
     if (HAS_ANIME && state.animeStatusFilter !== "Tất cả"
-      && !new Set(anime.map((x) => x.status || "Đã xem")).has(state.animeStatusFilter)) state.animeStatusFilter = "Tất cả";
+      && !new Set(anime.map(animeStatus)).has(state.animeStatusFilter)) state.animeStatusFilter = "Tất cả";
     renderSongs();
     renderAnime();
     fillHeroAndStats();
@@ -1251,10 +1260,10 @@
     if (HAS_ANIME) {
       renderVoteFilterChips("anime");
       makeChips($("#anime-filters"), uniqueGenres(anime), state.animeGenre, (g) => { state.animeGenre = g; renderAnime(); });
-      const statusLabels = ["Đã xem", "Đang xem"];
+      const statusLabels = ["Chưa xem", "Đang xem", "Đã xem"];
       const statusCounts = { "Tất cả": anime.length };
       statusLabels.forEach((label) => {
-        statusCounts[label] = anime.filter((x) => (x.status || "Đã xem") === label).length;
+        statusCounts[label] = anime.filter((x) => animeStatus(x) === label).length;
       });
       makeChips($("#anime-status-filters"), statusLabels, state.animeStatusFilter,
         (v) => { state.animeStatusFilter = v; renderAnime(); }, statusCounts);
@@ -1464,7 +1473,6 @@
     clearFormStatus(type);
     $("#" + type + "-form").reset();
     $("#" + type + "-edit-id").value = "";
-    $("#" + type + "-score").value = "8";
     $("#" + type + "-submit").textContent = type === "song" ? "Thêm bài hát" : "Thêm anime";
     pendingImages[type] = null;
     updateImagePreview(type);
@@ -1539,7 +1547,7 @@
       addedAt: old ? (old.addedAt || null) : new Date().toISOString(),
       title,
       genre,
-      score: clampScore($("#" + type + "-score").value),
+      score: normalizeScore($("#" + type + "-score").value),
       year: numberOrNull(type + "-year"),
       note: $("#" + type + "-note").value.trim() || null,
       image: pendingImages[type] || null
@@ -1643,7 +1651,9 @@
     const item = anime.find((x) => x.id === id);
     if (!item) return;
     const previous = anime.map((x) => ({ ...x }));
-    const nextStatus = (item.status || "Đã xem") === "Đang xem" ? "Đã xem" : "Đang xem";
+    const currentStatus = animeStatus(item);
+    const nextStatus = currentStatus === "Chưa xem" ? "Đang xem"
+      : currentStatus === "Đang xem" ? "Đã xem" : "Chưa xem";
     const next = anime.map((x) => x.id === id ? { ...x, status: nextStatus } : x);
     const collection = { songs, anime: next };
     if (AUTH_ENABLED) {
@@ -1672,7 +1682,12 @@
       renderAll();
       toast(AUTH_ENABLED ? "Đã khôi phục trên web." : "Đã hoàn tác.");
     };
-    toast(nextStatus === "Đã xem" ? "Đã đánh dấu xem xong." : "Đã chuyển sang Đang xem.", "Hoàn tác", undo);
+    const messages = {
+      "Chưa xem": "Đã đánh dấu chưa xem.",
+      "Đang xem": "Đã chuyển sang Đang xem.",
+      "Đã xem": "Đã đánh dấu xem xong."
+    };
+    toast(messages[nextStatus], "Hoàn tác", undo);
   }
 
   function slugForFile(text, index) {
