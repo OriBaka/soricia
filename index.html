@@ -6,14 +6,14 @@
   <meta name="description" content="Bảng xếp hạng nhạc và bình chọn cộng đồng của Soricia.">
   <meta name="theme-color" content="#0b0c12">
   <title>Soricia — Nhạc của tôi</title>
-  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=47">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=48">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=47">
-  <script src="data/data.js?v=47"></script>
-  <script src="data/config.js?v=47"></script>
-  <script src="assets/js/app.js?v=47" defer></script>
+  <link rel="stylesheet" href="assets/css/style.css?v=48">
+  <script src="data/data.js?v=48"></script>
+  <script src="data/config.js?v=48"></script>
+  <script src="assets/js/app.js?v=48" defer></script>
 </head>
 <body data-page="music">
   <a class="skip-link" href="#main">Chuyển đến nội dung</a>
@@ -196,6 +196,11 @@
         <p class="data-intro">Dữ liệu đang lưu trong <strong>trình duyệt của bạn</strong>. Xuất file để sao lưu, chuyển sang thiết khác, hoặc đưa lên GitHub.</p>
         <button class="btn btn-ghost" id="export-json" type="button">Tải file JSON (sao lưu)</button>
         <button class="btn btn-ghost" id="export-js" type="button">Tải file data.js (đưa lên GitHub)</button>
+        <button class="btn btn-primary" id="export-package" type="button">📦 Gói cập nhật cho Drive (data.js + ảnh bạn thêm)</button>
+        <div class="health-box">
+          <div class="health-head"><b>Kiểm tra Firebase</b><button class="btn btn-ghost" id="health-check" type="button">Chạy kiểm tra</button></div>
+          <pre class="health-result" id="health-result" hidden></pre>
+        </div>
         <label class="btn btn-ghost file-label" for="import-json">Nhập file JSON<input type="file" id="import-json" accept="application/json,.json"></label>
         <button class="btn btn-ghost" id="restore-backup" type="button">Khôi phục bản cũ trong trình duyệt</button>
         <button class="btn btn-danger" id="reset-data" type="button">Khôi phục dữ liệu gốc từ data.js</button>
@@ -241,5 +246,10 @@
     </div>
     <div class="container footer-bottom"><span>© <span id="footer-year">2026</span> Soricia</span></div>
   </footer>
+  <div class="remote-banner" id="remote-banner" hidden>
+    <span id="remote-banner-text">Có dữ liệu mới trên Firebase.</span>
+    <button type="button" id="remote-reload">Tải bản mới</button>
+    <button type="button" id="remote-dismiss" aria-label="Bỏ qua">×</button>
+  </div>
 </body>
 </html>

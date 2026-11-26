@@ -59,6 +59,11 @@ Lưu ý: ảnh trong IndexedDB chỉ hiển thị trên **thiết bị đã thê
 
 Nếu sau này bạn bật Blaze: tạo bucket Storage, vào Storage → Rules dán `firebase/storage.rules` → **Publish**, rồi điền tên bucket vào `storageBucket` trong `data/config.js`. Ảnh mới sẽ tự đẩy lên `covers/...`; nếu upload lỗi thì vẫn rơi về IndexedDB.
 
+### Nhóm A — chắc chắn trước khi mở rộng
+- Trong tab **Dữ liệu** của bảng quản lý có nút **📦 Gói cập nhật cho Drive**: tải về file zip gồm `data.js` + các ảnh bìa **Regina tự thêm** (đã nén JPEG tối đa 1200px) + `README.txt`. Regina chỉ cần gửi zip này qua Google Drive, Lucia giải nén đè vào repo là ảnh hiển thị public, không cần Storage trả phí.
+- Cũng trong tab **Dữ liệu**, nút **Chạy kiểm tra** báo trạng thái đọc công khai, số mục trên web/Firebase, lần đồng bộ cuối và thử ghi một key tạm để xác nhận Rules đã Publish và đúng email chủ web. Key tạm tự xoá ngay sau khi thử.
+- Khi có người đăng dữ liệu mới trong lúc bảng quản lý đang mở, một banner **“Có dữ liệu mới…”** hiện lên; bấm **Tải bản mới** sẽ lấy bản đó sau khi xác nhận (tránh đè mất thay đổi chưa lưu).
+
 ### Cách dùng
 - Mở `https://oribaka.github.io/soricia/index.html?admin=1` (hoặc `anime.html?admin=1`) → bảng Quản lý hiện ô **Đăng nhập chủ web**.
 - Đăng nhập xong thì thêm/sửa/xoá như trước. Mỗi thay đổi được đẩy lên node `collection` trên Firebase kèm `version` mới, nên mọi trình duyệt tự lấy bản mới.

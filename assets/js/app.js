@@ -5,6 +5,8 @@
   const SEED = JSON.parse(JSON.stringify(window.SITE_DATA || { profile: {}, songs: [], anime: [] }));
   const SEED_VERSION = SEED.version || "seed";
   let currentVersion = SEED_VERSION;
+  let lastSyncAt = null;
+  let pendingRemoteVersion = null;
   const STORAGE_KEY = "soricia.collection.v1";
   const VERSION_KEY = "soricia.collection.version";
   const BACKUP_KEY = "soricia.collection.backup.v1";
@@ -513,15 +515,67 @@
 
   async function checkRemoteUpdates() {
     if (!AUTH_ENABLED || !FIREBASE_URL || !COLLECTION_PATH) return;
-    if (document.body.classList.contains("panel-open")) return;
     try {
       const res = await fetch(firebaseUrl(COLLECTION_PATH + "/version"));
       if (!res.ok) return;
       const version = await res.json();
       if (!version || version === currentVersion) return;
+      if (document.body.classList.contains("panel-open")) {
+        pendingRemoteVersion = version;
+        const banner = $("#remote-banner");
+        if (banner) {
+          $("#remote-banner-text").textContent = "Có dữ liệu mới trên Firebase. Tải bản mới để xem.";
+          banner.hidden = false;
+        }
+        return;
+      }
+      pendingRemoteVersion = null;
       await pullRemoteCollection();
       applyDeepLink();
     } catch (e) { /* bỏ qua lỗi mạng, thử lại lần sau */ }
+  }
+
+  async function runHealthCheck() {
+    const out = $("#health-result");
+    if (!out) return;
+    out.hidden = false;
+    out.textContent = "Đang kiểm tra…";
+    if (!AUTH_ENABLED || !FIREBASE_URL || !COLLECTION_PATH) {
+      out.textContent = "Firebase chưa được cấu hình trong data/config.js.";
+      return;
+    }
+    const lines = [];
+    let readOk = false;
+    let remoteCount = "?";
+    try {
+      const res = await fetch(firebaseUrl(COLLECTION_PATH));
+      readOk = res.ok;
+      if (res.ok) {
+        const data = await res.json();
+        remoteCount = ((data && data.songs) || []).length + ((data && data.anime) || []).length;
+      }
+    } catch (e) { /* hiển thị lỗi bên dưới */ }
+    lines.push((readOk ? "✓" : "✗") + " Đọc dữ liệu công khai: " + (readOk ? "OK" : "thất bại — kiểm tra Rules đã Publish chưa"));
+    lines.push("Số mục: trên web " + (songs.length + anime.length) + " · trên Firebase " + remoteCount);
+    lines.push("Lần đồng bộ cuối: " + (lastSyncAt ? new Date(lastSyncAt).toLocaleString("vi-VN") : "chưa có trong phiên này"));
+    const key = COLLECTION_PATH + "/__healthcheck";
+    try {
+      const token = await ensureAuth();
+      const res = await fetch(firebaseUrl(key, token), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ at: new Date().toISOString() })
+      });
+      if (res.ok) {
+        lines.push("✓ Ghi dữ liệu chủ web: OK — Rules đã đúng.");
+        try { await fetch(firebaseUrl(key, token), { method: "DELETE" }); } catch (e) { /* key tạm tự bị ghi đè lần sau */ }
+      } else {
+        lines.push("✗ Ghi dữ liệu: HTTP " + res.status + " — cần đăng nhập đúng chủ web và Publish Rules.");
+      }
+    } catch (e) {
+      lines.push("✗ Ghi dữ liệu: " + e.message + " — hãy đăng nhập chủ web trước.");
+    }
+    out.textContent = lines.join("\n");
   }
 
   async function publicCollection(collection) {
@@ -547,6 +601,7 @@
       const data = await res.json();
       if (!data || !Array.isArray(data.songs) || !Array.isArray(data.anime)) return;
       if (data.version) currentVersion = data.version;
+      lastSyncAt = Date.now();
       songs = normalize(data.songs, "song");
       anime = normalize(data.anime, "anime");
       await stashDataImages();
@@ -1537,6 +1592,153 @@
     toast(AUTH_ENABLED ? "Đã xoá trên web." : "Đã xoá khỏi danh sách.", "Hoàn tác", undo);
   }
 
+  function slugForFile(text, index) {
+    return (fold(text || "item").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "item")
+      + "-" + index + ".jpg";
+  }
+
+  function dataUrlBytes(dataUrl) {
+    const match = String(dataUrl).match(/^data:[^;,]*;base64,(.*)$/s);
+    if (!match) return new TextEncoder().encode(String(dataUrl));
+    const binary = atob(match[1]);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  }
+
+  function compressDataUrl(dataUrl) {
+    return new Promise((resolve) => {
+      try {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const maxSide = 1200;
+            const scale = Math.min(1, maxSide / Math.max(img.width || 1, img.height || 1));
+            const canvas = document.createElement("canvas");
+            canvas.width = Math.max(1, Math.round((img.width || 1) * scale));
+            canvas.height = Math.max(1, Math.round((img.height || 1) * scale));
+            const ctx = canvas.getContext("2d");
+            if (!ctx) return resolve(dataUrl);
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            const out = canvas.toDataURL("image/jpeg", 0.82);
+            resolve(out && out.length < dataUrl.length ? out : dataUrl);
+          } catch (e) { resolve(dataUrl); }
+        };
+        img.onerror = () => resolve(dataUrl);
+        img.src = dataUrl;
+      } catch (e) { resolve(dataUrl); }
+    });
+  }
+
+  const CRC_TABLE = (() => {
+    const table = new Uint32Array(256);
+    for (let n = 0; n < 256; n++) {
+      let c = n;
+      for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      table[n] = c >>> 0;
+    }
+    return table;
+  })();
+
+  function crc32(bytes) {
+    let crc = 0xFFFFFFFF;
+    for (let i = 0; i < bytes.length; i++) crc = CRC_TABLE[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+    return (crc ^ 0xFFFFFFFF) >>> 0;
+  }
+
+  function createZip(files) {
+    const parts = [];
+    const central = [];
+    const encoder = new TextEncoder();
+    let offset = 0;
+    files.forEach((file) => {
+      const name = encoder.encode(file.name);
+      const data = typeof file.data === "string" ? encoder.encode(file.data) : file.data;
+      const crc = crc32(data);
+      const local = new Uint8Array(30 + name.length);
+      const lv = new DataView(local.buffer);
+      lv.setUint32(0, 0x04034B50, true);
+      lv.setUint16(4, 20, true);
+      lv.setUint16(6, 0, true);
+      lv.setUint16(8, 0, true);
+      lv.setUint32(14, crc, true);
+      lv.setUint32(18, data.length, true);
+      lv.setUint32(22, data.length, true);
+      lv.setUint16(26, name.length, true);
+      local.set(name, 30);
+      parts.push(local, data);
+
+      const record = new Uint8Array(46 + name.length);
+      const cv = new DataView(record.buffer);
+      cv.setUint32(0, 0x02014B50, true);
+      cv.setUint16(4, 20, true);
+      cv.setUint16(6, 20, true);
+      cv.setUint16(8, 0, true);
+      cv.setUint16(10, 0, true);
+      cv.setUint32(16, crc, true);
+      cv.setUint32(20, data.length, true);
+      cv.setUint32(24, data.length, true);
+      cv.setUint16(28, name.length, true);
+      cv.setUint32(42, offset, true);
+      record.set(name, 46);
+      central.push(record);
+      offset += local.length + data.length;
+    });
+    const centralSize = central.reduce((sum, part) => sum + part.length, 0);
+    const end = new Uint8Array(22);
+    const ev = new DataView(end.buffer);
+    ev.setUint32(0, 0x06054B50, true);
+    ev.setUint16(8, central.length, true);
+    ev.setUint16(10, central.length, true);
+    ev.setUint32(12, centralSize, true);
+    ev.setUint32(16, offset, true);
+    return new Blob([...parts, ...central, end], { type: "application/zip" });
+  }
+
+  async function exportUpdatePackage() {
+    const toastEl = $("#toast");
+    try {
+      if (toastEl) toast("Đang đóng gói…");
+      const payload = await publicCollection();
+      payload.version = new Date().toISOString();
+      const files = [];
+      const used = new Set();
+      for (const [kind, list] of [["song", payload.songs], ["anime", payload.anime]]) {
+        for (let i = 0; i < list.length; i++) {
+          const item = list[i];
+          if (!isDataImage(item.image)) continue;
+          const small = await compressDataUrl(item.image);
+          const base = slugForFile(item.title || kind, i);
+          let name = "assets/covers/" + base;
+          if (used.has(name)) name = "assets/covers/" + i + "-" + base;
+          used.add(name);
+          files.push({ name, data: dataUrlBytes(small) });
+          item.image = name;
+        }
+      }
+      const code = "/** Dữ liệu xuất từ trang web Soricia. Thay nội dung data/data.js bằng file này. */\n"
+        + "window.SITE_DATA = " + JSON.stringify(payload, null, 2) + ";\n";
+      files.unshift({ name: "data.js", data: code });
+      files.push({
+        name: "README.txt",
+        data: "Gói cap nhat Soricia\n\n"
+          + "1. Thay data/data.js bang file data.js trong goi nay.\n"
+          + "2. Chep cac file trong assets/covers/ vao repo (khong can doi ten).\n"
+          + "3. Commit va day len main de GitHub Pages tu dong cap nhat.\n\n"
+          + "Anh duoc nen JPEG toi da 1200px de giam dung luong.\n"
+      });
+      const blob = createZip(files);
+      const day = new Date().toISOString().slice(0, 10);
+      downloadFile(blob, "soricia-update-" + day + ".zip", "application/zip");
+      toast("Đã tải gói cập nhật (" + files.length + " file).");
+    } catch (e) {
+      console.warn("Không đóng gói được:", e);
+      toast("Không đóng gói được: " + e.message);
+    }
+  }
+
   function downloadFile(content, filename, mime) {
     const blob = new Blob([content], { type: mime });
     const url = URL.createObjectURL(blob);
@@ -1675,6 +1877,25 @@
       downloadFile(code, "data.js", "text/javascript");
       toast("Đã tải data.js.");
     });
+
+    $("#export-package").addEventListener("click", exportUpdatePackage);
+    $("#health-check").addEventListener("click", runHealthCheck);
+
+    const remoteBanner = $("#remote-banner");
+    if (remoteBanner) {
+      $("#remote-dismiss").addEventListener("click", () => {
+        pendingRemoteVersion = null;
+        remoteBanner.hidden = true;
+      });
+      $("#remote-reload").addEventListener("click", async () => {
+        if (!window.confirm("Tải bản dữ liệu mới? Mọi thay đổi chưa lưu trong bảng quản lý sẽ mất.")) return;
+        remoteBanner.hidden = true;
+        pendingRemoteVersion = null;
+        await pullRemoteCollection();
+        applyDeepLink();
+        toast("Đã tải dữ liệu mới.");
+      });
+    }
 
     $("#import-json").addEventListener("change", (e) => {
       const file = e.target.files[0];
