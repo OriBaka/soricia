@@ -766,6 +766,24 @@
     }
   }
 
+  function isOwnerEmail(email) {
+    const owner = String(CONFIG.ownerEmail || "").trim().toLowerCase();
+    return !!owner && String(email || "").trim().toLowerCase() === owner;
+  }
+
+  function viewerSyncMessage(action, problem) {
+    const text = String(problem || "");
+    const permissionIssue = /HTTP 401|HTTP 403|permission/i.test(text);
+    if (permissionIssue) {
+      return action === "signup"
+        ? "Tài khoản đã tạo, nhưng hiện web chưa lưu được phiếu và bình luận. Bạn vẫn xem bình thường — thử lại sau, hoặc báo chủ web nếu lỗi kéo dài."
+        : "Đăng nhập thành công, nhưng hiện web chưa lưu được phiếu và bình luận. Bạn vẫn xem bình thường — thử lại sau, hoặc báo chủ web nếu lỗi kéo dài.";
+    }
+    return action === "signup"
+      ? "Tài khoản đã tạo nhưng chưa đồng bộ được phiếu cũ. Vui lòng đăng xuất rồi đăng nhập lại."
+      : "Đã đăng nhập nhưng chưa đồng bộ được phiếu cũ. Vui lòng đăng xuất rồi đăng nhập lại.";
+  }
+
   function accountStatus(message) {
     const box = $("#account-status");
     if (!box) return;
@@ -2342,11 +2360,15 @@
         accountStatus("Nhập email và mật khẩu ít nhất 6 ký tự.");
         return;
       }
+      if (isOwnerEmail(email)) {
+        accountStatus("Email này dùng cho bảng quản lý. Vui lòng dùng email khác để tạo tài khoản người xem.");
+        return;
+      }
       accountStatus("");
       try {
         const result = await createViewerAccount(email, password);
         if (result.problem) {
-          accountStatus("Tài khoản đã tạo nhưng chưa chuyển được phiếu cũ: " + result.problem + ". Hãy Publish Rules Firebase rồi đăng nhập lại.");
+          accountStatus(viewerSyncMessage("signup", result.problem));
           return;
         }
         closeAccountModal();
@@ -2358,11 +2380,15 @@
       const email = $("#account-email").value.trim();
       const password = $("#account-password").value;
       if (!email || !password) { accountStatus("Nhập cả email và mật khẩu nhé."); return; }
+      if (isOwnerEmail(email)) {
+        accountStatus("Email này dùng cho bảng quản lý. Vui lòng dùng email khác để đăng nhập người xem.");
+        return;
+      }
       accountStatus("");
       try {
         const result = await signInViewer(email, password);
         if (result.problem) {
-          accountStatus("Đã đăng nhập nhưng chưa chuyển được phiếu cũ: " + result.problem + ". Hãy Publish Rules Firebase rồi thử lại.");
+          accountStatus(viewerSyncMessage("signin", result.problem));
           return;
         }
         closeAccountModal();
