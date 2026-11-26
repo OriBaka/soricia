@@ -764,3 +764,39 @@ body[data-page="anime"] .showcase-card {
 @media (max-width: 620px) {
   .remote-banner { font-size: 11px; gap: 7px; }
 }
+
+/* Nhóm B: sắp xếp mới, đổi trạng thái anime, bài hát hôm nay. */
+.chip-count {
+  margin-left: 5px; padding: 1px 6px; border-radius: 99px;
+  background: color-mix(in srgb, var(--violet) 24%, transparent);
+  color: var(--violet); font-size: 9px; font-weight: 800;
+}
+.status-toggle {
+  display: inline-block; margin: 0 0 6px; padding: 4px 9px;
+  border-radius: 8px; border: 1px solid var(--border-strong);
+  background: transparent; color: var(--muted); font-size: 11px; font-weight: 700;
+}
+.status-toggle:hover { color: var(--accent); border-color: var(--accent); }
+.daily-box { display: flex; align-items: stretch; gap: 8px; margin-top: 16px; max-width: 330px; }
+.daily-box[hidden] { display: none; }
+.daily-pick {
+  flex: 1; text-align: left; padding: 11px 13px; cursor: pointer;
+  border-radius: 13px; border: 1px solid color-mix(in srgb, var(--violet) 55%, transparent);
+  background: color-mix(in srgb, var(--violet) 12%, var(--surface-1));
+  color: var(--text); display: grid; gap: 3px;
+}
+.daily-pick:hover { border-color: var(--accent); }
+.daily-pick-label { font-size: 10px; font-weight: 800; color: var(--violet); letter-spacing: .02em; }
+.daily-pick-title { font-size: 14px; line-height: 1.3; }
+.daily-pick-foot { display: flex; justify-content: space-between; gap: 8px; font-size: 10px; color: var(--muted); }
+.daily-pick-foot b { color: var(--accent); white-space: nowrap; }
+.daily-share {
+  width: 38px; border-radius: 12px; cursor: pointer;
+  border: 1px solid var(--border-strong); background: var(--surface-2); color: var(--muted);
+  font-size: 14px;
+}
+.daily-share:hover { color: var(--accent); border-color: var(--accent); }
+@media (max-width: 620px) {
+  .daily-box { max-width: 100%; }
+  .daily-pick-title { font-size: 13px; }
+}
