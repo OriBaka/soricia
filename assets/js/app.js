@@ -92,6 +92,12 @@
     return null;
   }
 
+  function isNew(item) {
+    if (!item || !item.addedAt) return false;
+    const added = Date.parse(item.addedAt);
+    return Number.isFinite(added) && Date.now() - added < 7 * 24 * 60 * 60 * 1000;
+  }
+
   function displayImage(item) {
     const value = item && item.image;
     return isIdbImage(value) ? (imageCache.get(value) || null) : value;
@@ -259,7 +265,7 @@
 
   const state = {
     songView: "rank", songGenre: "Tất cả", songQuery: "", songSort: "community", songVoteFilter: "all",
-    animeView: "rank", animeGenre: "Tất cả", animeQuery: "", animeSort: "community", animeVoteFilter: "all"
+    animeView: "rank", animeGenre: "Tất cả", animeQuery: "", animeSort: "community", animeVoteFilter: "all", animeStatusFilter: "Tất cả"
   };
   let lastRankSort = "community";
   let lastAnimeRankSort = "community";
@@ -422,6 +428,67 @@
     if (status && !OWNER_MODE) { status.hidden = true; status.textContent = ""; }
   }
 
+  function findLinkedItem(kind, key) {
+    const list = kind === "song" ? songs : anime;
+    return list.find((item) => voteKey(item, kind) === key || songKey(item) === key);
+  }
+
+  function applyDeepLink() {
+    const match = String(window.location.hash || "").match(/^#item=(song|anime):(.+)$/);
+    if (!match) return;
+    const kind = match[1];
+    const key = decodeURIComponent(match[2]);
+    const item = findLinkedItem(kind, key);
+    if (!item) return;
+    const prefix = kind === "song" ? "song" : "anime";
+    state[prefix + "VoteFilter"] = "all";
+    state[prefix + "Query"] = "";
+    state[prefix + "Genre"] = "Tất cả";
+    if (kind === "anime") state.animeStatusFilter = "Tất cả";
+    const input = $("#" + prefix + "-search");
+    if (input) input.value = "";
+    renderAll();
+    const target = [...document.querySelectorAll("[data-item-id]")]
+      .find((el) => el.getAttribute("data-item-id") === item.id);
+    if (target) {
+      target.classList.add("is-linked");
+      if (target.scrollIntoView) target.scrollIntoView({ block: "center", behavior: "smooth" });
+      window.setTimeout(() => target.classList.remove("is-linked"), 3500);
+    }
+  }
+
+  async function copyShareLink(kind, key) {
+    const url = window.location.origin + window.location.pathname + "#item=" + kind + ":" + encodeURIComponent(key);
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const input = document.createElement("textarea");
+        input.value = url;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand("copy");
+        input.remove();
+      }
+      toast("Đã copy link chia sẻ.");
+    } catch (e) {
+      window.prompt("Copy link này:", url);
+    }
+  }
+
+  async function checkRemoteUpdates() {
+    if (!AUTH_ENABLED || !FIREBASE_URL || !COLLECTION_PATH) return;
+    if (document.body.classList.contains("panel-open")) return;
+    try {
+      const res = await fetch(firebaseUrl(COLLECTION_PATH + "/version"));
+      if (!res.ok) return;
+      const version = await res.json();
+      if (!version || version === currentVersion) return;
+      await pullRemoteCollection();
+      applyDeepLink();
+    } catch (e) { /* bỏ qua lỗi mạng, thử lại lần sau */ }
+  }
+
   async function publicCollection(collection) {
     const source = collection || { songs, anime };
     const clean = async (item) => {
@@ -451,6 +518,7 @@
       await hydrateImageCache();
       save();
       renderAll();
+      applyDeepLink();
     } catch (e) {
       console.warn("Không tải được danh sách từ Firebase:", e);
     }
@@ -744,6 +812,8 @@
       const key = voteKey(item, kind);
       if (voteFilter === "voted" && mine[key] == null) return false;
       if (voteFilter === "unvoted" && mine[key] != null && !justVoted[kind].has(key)) return false;
+      if (kind === "anime" && state.animeStatusFilter !== "Tất cả"
+        && (item.status || "Đã xem") !== state.animeStatusFilter) return false;
       if (!q) return true;
       return fold([item.title, item.artist, item.genre, item.alt, item.note].filter(Boolean).join(" ")).includes(q);
     });
@@ -878,7 +948,7 @@
     updateVoteFilterChips("song");
     updateVoteProgress("song");
     $("#music-list").innerHTML = rows.map(({ song, rank, cover }) => `
-      <li class="song${rank === 1 ? " is-top" : ""}">
+      <li class="song${rank === 1 ? " is-top" : ""}" data-item-id="${esc(song.id)}">
         <span class="song-rank${cover ? " has-image" : ""}" aria-label="Hạng ${rank}" title="Hạng ${rank}">
           ${cover ? `<img src="${esc(cover)}" alt="">` : ""}
           <b>#${String(rank).padStart(2, "0")}</b>
@@ -886,6 +956,7 @@
         <div class="song-main">
           <div class="song-title-line">
             <h3 class="song-title">${esc(song.title)}</h3>
+            ${isNew(song) ? `<span class="new-badge">MỚI</span>` : ""}
             <span class="song-artist">${esc(song.artist)}</span>
           </div>
           ${song.note ? `<p class="song-note">${esc(song.note)}</p>` : ""}
@@ -896,6 +967,7 @@
           </div>
           ${actionsFor("song", song)}
           <div class="listen-row">
+            <button type="button" class="share-btn" data-share="song" data-share-key="${esc(voteKey(song, "song"))}" aria-label="Chia sẻ bài ${esc(song.title)}">🔗 Chia sẻ</button>
             ${song.youtube
               ? `<button type="button" class="listen-btn" data-play="${esc(song.youtube)}" data-title="${esc(song.title)}" aria-label="Nghe ${esc(song.title)}">▶ Nghe</button>
                  <a class="listen-link" href="https://www.youtube.com/watch?v=${esc(song.youtube)}" target="_blank" rel="noopener noreferrer">Mở YouTube ↗</a>`
@@ -956,7 +1028,7 @@
       const watching = fold(show.status).includes("dang");
       const meta = [...genresOf(show), show.year ? String(show.year) : null, show.episodes ? show.episodes + " tập" : null].filter(Boolean);
       return `
-        <article class="anime-card">
+        <article class="anime-card" data-item-id="${esc(show.id)}">
           <div class="anime-cover" style="--c1:${from};--c2:${to}">
             ${cover ? `<img class="anime-cover-img" src="${esc(cover)}" alt="">` : ""}
             <span class="status-tag${watching ? " is-watching" : ""}">${esc(show.status || "Đã xem")}</span>
@@ -965,9 +1037,11 @@
           </div>
           <div class="anime-body">
             <h3 class="anime-title">${esc(show.title)}</h3>
+            ${isNew(show) ? `<span class="new-badge">MỚI</span>` : ""}
             ${show.alt ? `<p class="anime-sub">${esc(show.alt)}</p>` : ""}
             <p class="anime-sub">${esc(meta.join(" · "))}</p>
             ${show.note ? `<p class="anime-note">${esc(show.note)}</p>` : ""}
+            <button type="button" class="share-btn" data-share="anime" data-share-key="${esc(voteKey(show, "anime"))}" aria-label="Chia sẻ anime ${esc(show.title)}">🔗 Chia sẻ</button>
             ${actionsFor("anime", show)}
             ${scoreBlock(show, "anime")}
           </div>
@@ -1033,6 +1107,8 @@
   function renderAll() {
     if (HAS_MUSIC && state.songGenre !== "Tất cả" && !uniqueGenres(songs).includes(state.songGenre)) state.songGenre = "Tất cả";
     if (HAS_ANIME && state.animeGenre !== "Tất cả" && !uniqueGenres(anime).includes(state.animeGenre)) state.animeGenre = "Tất cả";
+    if (HAS_ANIME && state.animeStatusFilter !== "Tất cả"
+      && !new Set(anime.map((x) => x.status || "Đã xem")).has(state.animeStatusFilter)) state.animeStatusFilter = "Tất cả";
     renderSongs();
     renderAnime();
     fillHeroAndStats();
@@ -1045,6 +1121,7 @@
     if (HAS_ANIME) {
       renderVoteFilterChips("anime");
       makeChips($("#anime-filters"), uniqueGenres(anime), state.animeGenre, (g) => { state.animeGenre = g; renderAnime(); });
+      makeChips($("#anime-status-filters"), ["Đã xem", "Đang xem"], state.animeStatusFilter, (v) => { state.animeStatusFilter = v; renderAnime(); });
     }
   }
 
@@ -1182,8 +1259,9 @@
     const rows = bulkParsed.rows.filter((r) => !r.duplicate);
     if (!rows.length) return;
     const list = kind === "song" ? songs : anime;
+    const addedAt = new Date().toISOString();
     const items = rows.map((row, i) => ({
-      ...row, id: uid(kind), index: list.length + i, rank: list.length + i + 1
+      ...row, id: uid(kind), index: list.length + i, rank: list.length + i + 1, addedAt
     }));
     const next = [...list, ...items];
     const collection = kind === "song" ? { songs: next, anime } : { songs, anime: next };
@@ -1322,6 +1400,7 @@
       id: old ? old.id : uid(type),
       index: old ? old.index : list.length,
       rank: old ? old.rank : list.length + 1,
+      addedAt: old ? (old.addedAt || null) : new Date().toISOString(),
       title,
       genre,
       score: clampScore($("#" + type + "-score").value),
@@ -1487,6 +1566,8 @@
         if (modal) setPlayerSize(!modal.classList.contains("is-expanded"));
         return;
       }
+      const share = e.target.closest("[data-share]");
+      if (share) { copyShareLink(share.dataset.share, share.dataset.shareKey); return; }
       const play = e.target.closest("[data-play]");
       if (play) { openPlayer(play.dataset.play, play.dataset.title); return; }
       const opener = e.target.closest("[data-open-editor]");
@@ -1666,8 +1747,15 @@
     }
     await hydrateImageCache();
     renderAll();
+    applyDeepLink();
     loadRatings();
-    if (AUTH_ENABLED) pullRemoteCollection();
+    if (AUTH_ENABLED) {
+      pullRemoteCollection();
+      window.setInterval(checkRemoteUpdates, 30000);
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) checkRemoteUpdates();
+      });
+    }
     initReveal();
   }
 

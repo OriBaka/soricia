@@ -89,6 +89,8 @@ Phần Âm nhạc có 2 tab:
 
 Phần Anime dùng **cùng cơ chế 2 tab** (`Bảng xếp hạng` / `Vote anime`): xếp theo điểm vote cộng đồng, số hạng riêng `#01`, cùng điểm thì trộn ngẫu nhiên, chip lọc **Tất cả / Đã vote / Chưa vote**, và tab Vote giấu điểm + sao cho đến khi bạn gửi phiếu. Phiếu anime được lưu riêng (`anime-<tên bộ>`) trên Firebase nên không lẫn với phiếu bài hát.
 
+Ngoài chip thể loại, anime có thêm chip lọc **Tất cả / Đã xem / Đang xem**. Mục mới thêm trong vòng 7 ngày có nhãn **MỚI**. Mỗi bài/anime có nút **🔗 Chia sẻ** để copy link dạng `#item=anime:<tên>` — mở link sẽ cuộn tới đúng mục. Khi chế độ Firebase đang bật, web kiểm tra phiên bản dữ liệu mỗi 30 giây và tự lấy bản mới mà không cần tải lại trang (kể cả khi bạn đang mở tab cũ).
+
 ## Nghe nhạc ngay trên web
 
 Mỗi bài có nút **▶ Nghe**: bấm mở trình phát YouTube dạng cửa sổ nhỏ góc màn hình, nhạc chạy ngay mà **vẫn cuộn trang, gõ điểm và vote được**. Kéo bằng thanh tiêu đề (có ký hiệu ⠿) để đặt cửa sổ nhạc ở bất cứ đâu; vị trí được nhớ lại sau khi tải lại trang. Nút **⤢** phóng to full màn hình, **🗕** thu nhỏ lại về vị trí đã kéo, **✕** đóng; phím Esc thu nhỏ rồi đóng. Link được lưu trong trường `youtube` của từng bài trong `data/data.js` (77/77 bài). Chủ web có thể dán link mới vào ô **Link YouTube** trong form Sửa/Thêm rồi lưu; chấp nhận cả `https://youtu.be/...`, `youtube.com/watch?v=...` hoặc ID 11 ký tự.
