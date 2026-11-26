@@ -52,10 +52,12 @@ Sau khi cấu hình, mỗi lần **Thêm / Sửa / Xoá** trong bảng Quản l�
 4. **Realtime Database → Rules**: trong `firebase/rules.json`, thay `THAY_EMAIL_CHU_WEB@example.com` bằng email ở bước 2, rồi dán toàn bộ nội dung file vào tab Rules → **Publish**.
 5. Điền Web API key vào `data/config.js`, trường `authApiKey` (hoặc nhắn mình để mình điền và commit). Chưa điền thì web vẫn chạy chế độ lưu trong trình duyệt như cũ.
 
-### Tuỳ chọn: chuyển ảnh lên Firebase Storage
-- Firebase Console → **Storage** → nếu chưa có thì tạo bucket. Tên bucket phải khớp `storageBucket` trong `data/config.js` (mặc định `soricia.firebasestorage.app`; nếu Console hiện tên khác, nhắn mình đổi).
-- Storage → **Rules** → dán nội dung `firebase/storage.rules` → **Publish** (email chủ web đã được điền sẵn).
-- Ảnh bạn upload sẽ được đẩy lên `covers/...` và lưu thành link public trên Storage. Nếu Storage chưa sẵn sàng hoặc upload lỗi, ảnh tự động rơi về IndexedDB như trước — web vẫn chạy bình thường.
+### Ảnh: không cần trả phí (mặc định)
+Firebase Storage yêu cầu nâng cấp project lên **Blaze (thanh toán)** — web này **không yêu cầu** và vẫn chạy miễn phí với Realtime Database. Mặc định `storageBucket: ""` trong `data/config.js`: ảnh bạn thêm được lưu trong **IndexedDB của trình duyệt**, còn danh sách (kèm đường dẫn ảnh) vẫn đồng bộ qua Firebase miễn phí.
+
+Lưu ý: ảnh trong IndexedDB chỉ hiển thị trên **thiết bị đã thêm ảnh đó**. Để ảnh hiển thị với mọi người, gửi file `data.js` (có ảnh base64) cho mình qua Drive, mình sẽ trích xuất vào `assets/covers/` và đăng lên web — cách này không tốn phí.
+
+Nếu sau này bạn bật Blaze: tạo bucket Storage, vào Storage → Rules dán `firebase/storage.rules` → **Publish**, rồi điền tên bucket vào `storageBucket` trong `data/config.js`. Ảnh mới sẽ tự đẩy lên `covers/...`; nếu upload lỗi thì vẫn rơi về IndexedDB.
 
 ### Cách dùng
 - Mở `https://oribaka.github.io/soricia/index.html?admin=1` (hoặc `anime.html?admin=1`) → bảng Quản lý hiện ô **Đăng nhập chủ web**.

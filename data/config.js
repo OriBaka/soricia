@@ -16,6 +16,7 @@ window.SITE_CONFIG = {
   authApiKey: "AIzaSyDZWl63Bl1eQgQGolMR4_Y_gQNAY469TlM",
   // Owner email must also be written into firebase/rules.json (auth.token.email).
   ownerEmail: "fghrtyu1203@gmail.com",
-  // Firebase Storage bucket for uploaded covers. Leave empty to keep images in IndexedDB.
-  storageBucket: "soricia.firebasestorage.app"
+  // Firebase Storage requires a paid Blaze project. Empty = keep uploaded images in
+  // IndexedDB (no billing). Set the bucket name later only if Blaze is enabled.
+  storageBucket: ""
 };
