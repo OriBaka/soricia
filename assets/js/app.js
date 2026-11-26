@@ -7,6 +7,7 @@
   let currentVersion = SEED_VERSION;
   let lastSyncAt = null;
   let pendingRemoteVersion = null;
+  let dailySong = null;
   const STORAGE_KEY = "soricia.collection.v1";
   const VERSION_KEY = "soricia.collection.version";
   const BACKUP_KEY = "soricia.collection.backup.v1";
@@ -883,6 +884,8 @@
     if (mode === "rank") return copy.sort((a, b) => a.rank - b.rank);
     if (mode === "title") return copy.sort((a, b) => String(a.title).localeCompare(String(b.title), "vi"));
     if (mode === "year") return copy.sort((a, b) => (b.year || 0) - (a.year || 0));
+    if (mode === "new") return copy.sort((a, b) =>
+      ((Date.parse(b.addedAt) || 0) - (Date.parse(a.addedAt) || 0)) || ((b.index || 0) - (a.index || 0)));
     if (mode === "community" || mode === "score") {
       return copy.sort((a, b) => displayScore(b, mode, kind) - displayScore(a, mode, kind) || tieFor(a, kind) - tieFor(b, kind));
     }
@@ -912,10 +915,12 @@
   const uniqueGenres = (items) => [...new Set(items.flatMap(genresOf))]
     .sort((a, b) => String(a).localeCompare(String(b), "vi"));
 
-  function makeChips(container, genres, active, onSelect) {
-    container.innerHTML = ["Tất cả", ...genres].map((genre) => `
-      <button type="button" class="chip" data-genre="${esc(genre)}" aria-pressed="${genre === active}">${esc(genre)}</button>
-    `).join("");
+  function makeChips(container, genres, active, onSelect, counts) {
+    container.innerHTML = ["Tất cả", ...genres].map((genre) => {
+      const count = counts && counts[genre] != null
+        ? ` <small class="chip-count">${counts[genre]}</small>` : "";
+      return `<button type="button" class="chip" data-genre="${esc(genre)}" aria-pressed="${genre === active}">${esc(genre)}${count}</button>`;
+    }).join("");
     container.querySelectorAll(".chip").forEach((chip) => {
       chip.addEventListener("click", () => {
         container.querySelectorAll(".chip").forEach((c) => c.setAttribute("aria-pressed", "false"));
@@ -1131,6 +1136,7 @@
             ${show.alt ? `<p class="anime-sub">${esc(show.alt)}</p>` : ""}
             <p class="anime-sub">${esc(meta.join(" · "))}</p>
             ${show.note ? `<p class="anime-note">${esc(show.note)}</p>` : ""}
+            <button type="button" class="status-toggle" data-status-toggle="${esc(show.id)}">${watching ? "✓ Đã xem xong" : "▶ Đang xem"}</button>
             <button type="button" class="share-btn" data-share="anime" data-share-key="${esc(voteKey(show, "anime"))}" aria-label="Chia sẻ anime ${esc(show.title)}">🔗 Chia sẻ</button>
             ${actionsFor("anime", show)}
             ${scoreBlock(show, "anime")}
@@ -1194,6 +1200,39 @@
     setStat("avg", allScores.length ? fmt(avg) : "—");
   }
 
+  function dailySeed() {
+    const pinned = new URLSearchParams(window.location.search).get("daily") || "";
+    return /^\d{4}-\d{2}-\d{2}$/.test(pinned) ? pinned : new Date().toISOString().slice(0, 10);
+  }
+
+  function hashText(text) {
+    let hash = 2166136261;
+    for (let i = 0; i < text.length; i++) {
+      hash ^= text.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    return hash >>> 0;
+  }
+
+  function pickDailySong() {
+    if (!songs.length) return null;
+    const seed = dailySeed();
+    return songs
+      .map((song) => ({ song, hash: hashText(seed + "|" + voteKey(song, "song")) }))
+      .sort((a, b) => (a.hash < b.hash ? -1 : a.hash > b.hash ? 1 : 0))[0].song;
+  }
+
+  function renderDailyPick() {
+    const box = $("#daily-box");
+    if (!box) return;
+    dailySong = pickDailySong();
+    box.hidden = !dailySong;
+    if (!dailySong) return;
+    $("#daily-date").textContent = dailySeed();
+    $("#daily-title").textContent = dailySong.title;
+    $("#daily-artist").textContent = dailySong.artist || "";
+  }
+
   function renderAll() {
     if (HAS_MUSIC && state.songGenre !== "Tất cả" && !uniqueGenres(songs).includes(state.songGenre)) state.songGenre = "Tất cả";
     if (HAS_ANIME && state.animeGenre !== "Tất cả" && !uniqueGenres(anime).includes(state.animeGenre)) state.animeGenre = "Tất cả";
@@ -1202,6 +1241,7 @@
     renderSongs();
     renderAnime();
     fillHeroAndStats();
+    renderDailyPick();
     const genres = uniqueGenres(HAS_MUSIC && HAS_ANIME ? [...songs, ...anime] : HAS_MUSIC ? songs : anime);
     $("#genre-options").innerHTML = genres.map((g) => `<option value="${esc(g)}"></option>`).join("");
     if (HAS_MUSIC) {
@@ -1211,7 +1251,13 @@
     if (HAS_ANIME) {
       renderVoteFilterChips("anime");
       makeChips($("#anime-filters"), uniqueGenres(anime), state.animeGenre, (g) => { state.animeGenre = g; renderAnime(); });
-      makeChips($("#anime-status-filters"), ["Đã xem", "Đang xem"], state.animeStatusFilter, (v) => { state.animeStatusFilter = v; renderAnime(); });
+      const statusLabels = ["Đã xem", "Đang xem"];
+      const statusCounts = { "Tất cả": anime.length };
+      statusLabels.forEach((label) => {
+        statusCounts[label] = anime.filter((x) => (x.status || "Đã xem") === label).length;
+      });
+      makeChips($("#anime-status-filters"), statusLabels, state.animeStatusFilter,
+        (v) => { state.animeStatusFilter = v; renderAnime(); }, statusCounts);
     }
   }
 
@@ -1592,6 +1638,43 @@
     toast(AUTH_ENABLED ? "Đã xoá trên web." : "Đã xoá khỏi danh sách.", "Hoàn tác", undo);
   }
 
+  async function toggleAnimeStatus(id) {
+    if (!OWNER_MODE) { toast("Đăng nhập chủ web để đổi trạng thái."); return; }
+    const item = anime.find((x) => x.id === id);
+    if (!item) return;
+    const previous = anime.map((x) => ({ ...x }));
+    const nextStatus = (item.status || "Đã xem") === "Đang xem" ? "Đã xem" : "Đang xem";
+    const next = anime.map((x) => x.id === id ? { ...x, status: nextStatus } : x);
+    const collection = { songs, anime: next };
+    if (AUTH_ENABLED) {
+      currentVersion = new Date().toISOString();
+      try { await pushRemoteCollection(collection); }
+      catch (e) { toast("Không đổi được trên web: " + e.message); return; }
+      anime = next;
+      save();
+    } else {
+      if (!save(collection)) { toast("Không lưu được thay đổi trong trình duyệt."); return; }
+      anime = next;
+    }
+    renderAll();
+    const undo = async () => {
+      const restore = { songs, anime: previous };
+      if (AUTH_ENABLED) {
+        currentVersion = new Date().toISOString();
+        try { await pushRemoteCollection(restore); }
+        catch (e) { toast("Không hoàn tác được trên web: " + e.message); return; }
+        anime = previous;
+        save();
+      } else {
+        if (!save(restore)) return;
+        anime = previous;
+      }
+      renderAll();
+      toast(AUTH_ENABLED ? "Đã khôi phục trên web." : "Đã hoàn tác.");
+    };
+    toast(nextStatus === "Đã xem" ? "Đã đánh dấu xem xong." : "Đã chuyển sang Đang xem.", "Hoàn tác", undo);
+  }
+
   function slugForFile(text, index) {
     return (fold(text || "item").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "item")
       + "-" + index + ".jpg";
@@ -1803,6 +1886,8 @@
         if (modal) setPlayerSize(!modal.classList.contains("is-expanded"));
         return;
       }
+      const statusToggle = e.target.closest("[data-status-toggle]");
+      if (statusToggle) { toggleAnimeStatus(statusToggle.dataset.statusToggle); return; }
       const share = e.target.closest("[data-share]");
       if (share) { copyShareLink(share.dataset.share, share.dataset.shareKey); return; }
       const play = e.target.closest("[data-play]");
@@ -1880,6 +1965,33 @@
 
     $("#export-package").addEventListener("click", exportUpdatePackage);
     $("#health-check").addEventListener("click", runHealthCheck);
+
+    const dailyPick = $("#daily-pick");
+    if (dailyPick) dailyPick.addEventListener("click", () => {
+      if (!dailySong) return;
+      if (dailySong.youtube) {
+        openPlayer(dailySong.youtube, dailySong.title);
+      } else {
+        window.location.hash = "#item=song:" + encodeURIComponent(voteKey(dailySong, "song"));
+        applyDeepLink();
+      }
+    });
+    const dailyShare = $("#daily-share");
+    if (dailyShare) dailyShare.addEventListener("click", async () => {
+      if (!dailySong) return;
+      const url = window.location.origin + window.location.pathname
+        + "?daily=" + encodeURIComponent(dailySeed())
+        + "#item=song:" + encodeURIComponent(voteKey(dailySong, "song"));
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) await navigator.clipboard.writeText(url);
+        else {
+          const input = document.createElement("textarea");
+          input.value = url; document.body.appendChild(input); input.select();
+          document.execCommand("copy"); input.remove();
+        }
+        toast("Đã copy link bài hát hôm nay.");
+      } catch (e) { window.prompt("Copy link này:", url); }
+    });
 
     const remoteBanner = $("#remote-banner");
     if (remoteBanner) {
