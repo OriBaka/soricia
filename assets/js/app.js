@@ -534,15 +534,15 @@
     const signin = $("#account-signin");
     const resync = $("#account-resync");
     const owner = ownerSignedIn();
-    if (label) label.textContent = viewerSignedIn()
-      ? (viewerAuth.email || "Tài khoản").split("@")[0]
-      : owner ? "Quản lý" : "Đăng nhập";
+    if (label) label.textContent = owner ? "Quản lý"
+      : viewerSignedIn() ? (viewerAuth.email || "Tài khoản").split("@")[0] : "Đăng nhập";
     const button = $("#account-btn");
-    if (button) button.title = viewerSignedIn() ? viewerAuth.email
-      : owner ? "Đang ở chế độ quản lý" : "Đăng nhập / tạo tài khoản để bình luận và giữ phiếu vote";
+    if (button) button.title = owner ? "Đang ở chế độ quản lý — bấm để xem tài khoản"
+      : viewerSignedIn() ? viewerAuth.email : "Đăng nhập / tạo tài khoản để bình luận và giữ phiếu vote";
     if (signout) {
       signout.hidden = !viewerSignedIn() && !owner;
-      signout.textContent = viewerSignedIn() && owner ? "Đăng xuất tất cả"
+      const sameAccount = viewerSignedIn() && owner && isOwnerEmail(viewerAuth.email);
+      signout.textContent = viewerSignedIn() && owner && !sameAccount ? "Đăng xuất tất cả"
         : owner ? "Đăng xuất quản lý" : "Đăng xuất";
     }
     if (signup) signup.hidden = viewerSignedIn();
@@ -675,7 +675,7 @@
     const modal = $("#account-modal");
     if (!modal) return;
     const note = $("#account-hint");
-    if (note) note.textContent = hint || "Tạo tài khoản để bình luận và gửi điểm. Những phiếu bạn đã vote trước đó sẽ tự động chuyển sang tài khoản — không bị mất. Email quản lý dùng nút Đăng nhập để vào bảng quản lý.";
+    if (note) note.textContent = hint || "Tạo tài khoản để bình luận và gửi điểm. Những phiếu bạn đã vote trước đó sẽ tự động chuyển sang tài khoản — không bị mất. Email quản lý dùng nút Đăng nhập để vào bảng quản lý — tài khoản quản lý cũng vote và bình luận như tài khoản thường.";
     const status = $("#account-status");
     if (status) { status.hidden = true; status.textContent = ""; }
     modal.hidden = false;
@@ -747,7 +747,7 @@
         const time = Number.isFinite(when.getTime()) ? when.toLocaleString("vi-VN") : "";
         const own = viewerSignedIn() && comment.uid === viewerAuth.localId;
         return `<div class="comment-item">
-          <div class="comment-meta"><span>${esc(email.split("@")[0])} · ${esc(time)}</span>
+          <div class="comment-meta"><span>${esc(email.split("@")[0])}${isOwnerEmail(email) ? " · Chủ web" : ""} · ${esc(time)}</span>
             ${own ? `<button type="button" data-delete-comment="${esc(comment.id)}">Xoá</button>` : ""}
           </div>
           <p>${esc(comment.text)}</p>
@@ -879,6 +879,33 @@
     throw new Error("Chưa đăng nhập tài khoản nào.");
   }
 
+  // Tài khoản quản lý cũng là một tài khoản Firebase thường: nối phiên quản lý
+  // sang phiên người xem (cùng email) để vote, bình luận và đồng bộ phiếu dùng
+  // chung mọi tính năng. Nếu đang đăng nhập một tài khoản thường khác thì giữ
+  // nguyên tài khoản đó, không ghi đè.
+  async function mirrorOwnerToViewer() {
+    if (!ownerSignedIn()) return;
+    if (viewerSignedIn()) return;
+    let localId = auth.localId;
+    if (!localId && auth.idToken) {
+      try {
+        const data = await authRequest("accounts:lookup", { idToken: auth.idToken });
+        localId = data.users && data.users[0] && data.users[0].localId;
+        if (localId) { auth.localId = localId; saveAuth(); }
+      } catch (e) { /* vẫn dùng được tính năng quản trị nếu không lấy được mã tài khoản */ }
+    }
+    if (!localId) return;
+    viewerAuth = {
+      idToken: auth.idToken,
+      refreshToken: auth.refreshToken,
+      email: auth.email,
+      localId,
+      expiresAt: auth.expiresAt
+    };
+    saveViewerAuth();
+    applyViewerUi();
+  }
+
   async function signInOwner(email, password) {
     const data = await authRequest("accounts:signInWithPassword", {
       email, password, returnSecureToken: true
@@ -888,6 +915,7 @@
       idToken: data.idToken,
       refreshToken: data.refreshToken,
       email: data.email || email,
+      localId: data.localId,
       expiresAt: Date.now() + (Number(data.expiresIn) || 3600) * 1000
     };
     saveAuth();
@@ -896,6 +924,8 @@
     applyOwnerUi();
     applyViewerUi();
     renderAll();
+    await mirrorOwnerToViewer();
+    if (viewerSignedIn() && isOwnerEmail(viewerAuth.email)) await finishViewerAuth(false);
     await pullRemoteCollection();
   }
 
@@ -2863,6 +2893,7 @@
     renderAll();
     animateStats();
     loadComments();
+    await mirrorOwnerToViewer();
     if (viewerSignedIn()) finishViewerAuth(false);
     applyDeepLink();
     window.addEventListener("hashchange", applyDeepLink);
