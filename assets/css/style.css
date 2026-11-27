@@ -841,6 +841,13 @@ body[data-page="anime"] .showcase-card {
 }
 .account-note, .comment-sub { margin: 10px 0 14px; color: var(--muted); font-size: 12px; line-height: 1.6; }
 .account-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.link-btn {
+  margin-top: 10px; padding: 2px 0; border: 0; background: none; cursor: pointer;
+  color: var(--accent); font-size: 12px; font-weight: 600; text-decoration: underline;
+}
+.link-btn:hover { color: var(--accent-strong, var(--accent)); }
+.account-change { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-strong); }
+.account-change .btn { margin-top: 8px; }
 .account-actions .btn { flex: 1; min-width: 120px; }
 .comment-list { display: grid; gap: 10px; max-height: 280px; overflow: auto; margin: 12px 0; }
 .comment-item { padding: 10px 12px; border-radius: 12px; background: var(--surface-2); font-size: 12px; line-height: 1.5; }

@@ -186,7 +186,10 @@
 
   function displayImage(item) {
     const value = item && item.image;
-    return isIdbImage(value) ? (imageCache.get(value) || null) : value;
+    if (value) return isIdbImage(value) ? (imageCache.get(value) || null) : value;
+    // Chưa có bìa riêng: mượn thumbnail của video YouTube làm bìa tạm (chỉ để hiển thị, không ghi vào dữ liệu).
+    const yt = youtubeId(item && item.youtube);
+    return yt ? "https://i.ytimg.com/vi/" + yt + "/hqdefault.jpg" : null;
   }
 
   async function stashDataImages() {
@@ -545,6 +548,10 @@
     if (signup) signup.hidden = viewerSignedIn();
     if (signin) signin.hidden = viewerSignedIn();
     if (resync) resync.hidden = !viewerSignedIn();
+    const forgot = $("#account-forgot");
+    if (forgot) forgot.hidden = viewerSignedIn();
+    const changeWrap = $("#account-change-wrap");
+    if (changeWrap) changeWrap.hidden = !viewerSignedIn() && !owner;
   }
 
   async function saveViewerProfile() {
@@ -832,6 +839,46 @@
     box.classList.toggle("is-success", kind === "success");
   }
 
+  function passwordProblemMessage(problem) {
+    const text = String(problem || "");
+    if (/EMAIL_NOT_FOUND/i.test(text)) return "Không tìm thấy tài khoản với email này.";
+    if (/WEAK_PASSWORD/i.test(text)) return "Mật khẩu cần ít nhất 6 ký tự.";
+    if (/TOKEN_EXPIRED|INVALID_ID_TOKEN|USER_NOT_FOUND/i.test(text)) return "Phiên đăng nhập đã hết hạn. Đăng xuất rồi đăng nhập lại nhé.";
+    if (/INVALID_EMAIL/i.test(text)) return "Email chưa đúng định dạng.";
+    return text.replace(/^HTTP \d+.*$/, "Có lỗi mạng. Thử lại sau nhé.") || "Có lỗi xảy ra. Thử lại sau nhé.";
+  }
+
+  async function sendPasswordReset(email) {
+    await authRequest("accounts:sendOobCode", { requestType: "PASSWORD_RESET", email });
+  }
+
+  // Đổi mật khẩu cho tài khoản đang đăng nhập: ưu tiên tài khoản người xem, không thì tài khoản quản lý.
+  async function changeAccountPassword(newPassword) {
+    if (viewerSignedIn()) {
+      const token = await ensureViewerToken();
+      const data = await authRequest("accounts:update", { idToken: token, password: newPassword, returnSecureToken: true });
+      if (data.idToken) {
+        viewerAuth.idToken = data.idToken;
+        viewerAuth.refreshToken = data.refreshToken || viewerAuth.refreshToken;
+        viewerAuth.expiresAt = Date.now() + (Number(data.expiresIn) || 3600) * 1000;
+        saveViewerAuth();
+      }
+      return "viewer";
+    }
+    if (ownerSignedIn()) {
+      const token = await ensureAuth();
+      const data = await authRequest("accounts:update", { idToken: token, password: newPassword, returnSecureToken: true });
+      if (data.idToken) {
+        auth.idToken = data.idToken;
+        auth.refreshToken = data.refreshToken || auth.refreshToken;
+        auth.expiresAt = Date.now() + (Number(data.expiresIn) || 3600) * 1000;
+        saveAuth();
+      }
+      return "owner";
+    }
+    throw new Error("Chưa đăng nhập tài khoản nào.");
+  }
+
   async function signInOwner(email, password) {
     const data = await authRequest("accounts:signInWithPassword", {
       email, password, returnSecureToken: true
@@ -916,6 +963,16 @@
 
   async function copyShareLink(kind, key) {
     const url = window.location.origin + window.location.pathname + "#item=" + kind + ":" + encodeURIComponent(key);
+    // Trên điện thoại ưu tiên hộp chia sẻ có sẵn của máy (Zalo, Messenger…), không thì copy link.
+    if (navigator.share) {
+      const item = findLinkedItem(kind, key);
+      try {
+        await navigator.share({ title: item ? item.title : "Soricia", url });
+        return;
+      } catch (e) {
+        if (e && e.name === "AbortError") return;
+      }
+    }
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(url);
@@ -2476,6 +2533,27 @@
       } catch (e) { accountStatus(viewerSyncMessage("resync", e.message)); }
     });
 
+    $("#account-forgot").addEventListener("click", async () => {
+      const email = $("#account-email").value.trim();
+      if (!email) { accountStatus("Nhập email của bạn trước, rồi bấm Quên mật khẩu nhé."); return; }
+      accountStatus("");
+      try {
+        await sendPasswordReset(email);
+        accountStatus("Đã gửi email đặt lại mật khẩu tới " + email + ". Kiểm tra hộp thư (cả mục Spam) rồi bấm vào link trong thư nhé.", "success");
+      } catch (e) { accountStatus("Chưa gửi được email: " + passwordProblemMessage(e.message)); }
+    });
+    $("#account-change-password").addEventListener("click", async () => {
+      const input = $("#account-new-password");
+      const next = input.value;
+      if (!next || next.length < 6) { accountStatus("Mật khẩu mới cần ít nhất 6 ký tự."); return; }
+      accountStatus("");
+      try {
+        await changeAccountPassword(next);
+        input.value = "";
+        accountStatus("Đã đổi mật khẩu thành công. Lần sau đăng nhập bằng mật khẩu mới nhé.", "success");
+      } catch (e) { accountStatus("Chưa đổi được mật khẩu: " + passwordProblemMessage(e.message)); }
+    });
+
     $("#comment-close").addEventListener("click", closeCommentModal);
     const commentBackdrop = document.querySelector("[data-close-comment]");
     if (commentBackdrop) commentBackdrop.addEventListener("click", closeCommentModal);
@@ -2787,6 +2865,7 @@
     loadComments();
     if (viewerSignedIn()) finishViewerAuth(false);
     applyDeepLink();
+    window.addEventListener("hashchange", applyDeepLink);
     loadRatings();
     if (AUTH_ENABLED) {
       pullRemoteCollection();
