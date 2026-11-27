@@ -4,16 +4,20 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Bảng xếp hạng nhạc và bình chọn cộng đồng của Soricia.">
+  <meta property="og:title" content="Soricia — Khám phá & chấm điểm nhạc">
+  <meta property="og:description" content="Nghe, chấm điểm và xếp hạng những bài nhạc cộng đồng đang mê nhất trên Soricia.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://oribaka.github.io/soricia/">
   <meta name="theme-color" content="#0b0c12">
   <title>Soricia — Khám phá & chấm điểm nhạc</title>
-  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=58">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=59">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=58">
-  <script src="data/data.js?v=58"></script>
-  <script src="data/config.js?v=58"></script>
-  <script src="assets/js/app.js?v=58" defer></script>
+  <link rel="stylesheet" href="assets/css/style.css?v=59">
+  <script src="data/data.js?v=59"></script>
+  <script src="data/config.js?v=59"></script>
+  <script src="assets/js/app.js?v=59" defer></script>
 </head>
 <body data-page="music">
   <a class="skip-link" href="#main">Chuyển đến nội dung</a>
@@ -280,6 +284,11 @@
         <button class="btn btn-ghost" id="account-signin" type="button">Đăng nhập</button>
         <button class="btn btn-ghost" id="account-signout" type="button" hidden>Đăng xuất</button>
         <button class="btn btn-ghost" id="account-resync" type="button" hidden>Đồng bộ lại phiếu đã vote</button>
+      </div>
+      <button class="link-btn" id="account-forgot" type="button">Quên mật khẩu?</button>
+      <div class="account-change" id="account-change-wrap" hidden>
+        <div class="field"><label for="account-new-password">Đổi mật khẩu</label><input id="account-new-password" type="password" autocomplete="new-password" placeholder="Mật khẩu mới (ít nhất 6 ký tự)"></div>
+        <button class="btn btn-ghost" id="account-change-password" type="button">Đổi mật khẩu</button>
       </div>
     </div>
   </div>
