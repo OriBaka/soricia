@@ -550,6 +550,8 @@
     if (resync) resync.hidden = !viewerSignedIn();
     const forgot = $("#account-forgot");
     if (forgot) forgot.hidden = viewerSignedIn();
+    const myBtn = $("#my-btn");
+    if (myBtn) myBtn.hidden = !viewerSignedIn();
     const changeWrap = $("#account-change-wrap");
     if (changeWrap) changeWrap.hidden = !viewerSignedIn() && !owner;
   }
@@ -747,7 +749,7 @@
         const time = Number.isFinite(when.getTime()) ? when.toLocaleString("vi-VN") : "";
         const own = viewerSignedIn() && comment.uid === viewerAuth.localId;
         return `<div class="comment-item">
-          <div class="comment-meta"><span>${esc(email.split("@")[0])}${isOwnerEmail(email) ? " · Chủ web" : ""} · ${esc(time)}</span>
+          <div class="comment-meta"><span><span class="comment-author${isOwnerEmail(email) ? " is-owner" : ""}">${esc(email.split("@")[0])}</span>${isOwnerEmail(email) ? ` <span class="comment-owner-tag">Chủ web</span>` : ""} · ${esc(time)}</span>
             ${own ? `<button type="button" data-delete-comment="${esc(comment.id)}">Xoá</button>` : ""}
           </div>
           <p>${esc(comment.text)}</p>
@@ -806,6 +808,125 @@
     } catch (e) {
       toast("Không xoá được bình luận: " + e.message);
     }
+  }
+
+  // ---------- Trang "Của tôi": bài đã vote, điểm đã cho, bình luận của mình ----------
+  function myEntries(kind) {
+    const mine = kind === "anime" ? myAnimeVotes : myVotes;
+    const list = kind === "anime" ? anime : songs;
+    return Object.entries(mine)
+      .map(([key, score]) => {
+        const item = list.find((it) => voteKey(it, kind) === key);
+        return item ? { key, score: Number(score), item } : null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.score - a.score || String(a.item.title).localeCompare(String(b.item.title)));
+  }
+
+  function myComments() {
+    if (!viewerSignedIn()) return [];
+    const out = [];
+    Object.entries(commentsByItem).forEach(([key, entries]) => {
+      (entries || []).forEach((comment) => {
+        if (comment.uid === viewerAuth.localId) {
+          out.push({ key, kind: key.startsWith("anime-") ? "anime" : "song", ...comment });
+        }
+      });
+    });
+    return out.sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
+  }
+
+  function gotoItem(kind, key) {
+    closeMyModal();
+    const here = kind === "song" ? HAS_MUSIC : HAS_ANIME;
+    if (here) {
+      window.location.hash = "#item=" + kind + ":" + encodeURIComponent(key);
+      applyDeepLink();
+    } else {
+      window.location.href = (kind === "song" ? "index.html" : "anime.html") + "#item=" + kind + ":" + encodeURIComponent(key);
+    }
+  }
+
+  async function deleteMyComment(key, id) {
+    if (!viewerSignedIn()) return;
+    if (!window.confirm("Xoá bình luận này?")) return;
+    try {
+      const token = await ensureViewerToken();
+      const url = firebaseUrl(COMMENTS_PATH + "/" + encodeURIComponent(key) + "/" + encodeURIComponent(id), token);
+      const res = await fetch(url, { method: "DELETE" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      await loadComments();
+      renderMyPage();
+      toast("Đã xoá bình luận.");
+    } catch (e) { toast("Không xoá được bình luận: " + e.message); }
+  }
+
+  function renderMyPage() {
+    const box = $("#my-content");
+    if (!box) return;
+    if (!viewerSignedIn()) {
+      box.innerHTML = '<p class="comment-sub">Đăng nhập để xem các bài bạn đã vote và bình luận của bạn.</p>';
+      return;
+    }
+    const songEntries = myEntries("song");
+    const animeEntries = myEntries("anime");
+    const comments = myComments();
+    const avgOf = (entries) => entries.length
+      ? fmt(entries.reduce((sum, e) => sum + e.score, 0) / entries.length) : "—";
+    const rowFor = (kind) => (entry) => {
+      const table = kind === "anime" ? animeRatings : ratings;
+      const rating = table[entry.key];
+      const community = rating && rating.count ? fmt(rating.avg) + " (" + rating.count + " lượt)" : "chưa có";
+      const sub = kind === "anime"
+        ? [entry.item.alt, animeStatus(entry.item)].filter(Boolean).join(" · ")
+        : [entry.item.artist, entry.item.genre].filter(Boolean).join(" · ");
+      return `<div class="my-row">
+        <button type="button" class="my-goto" data-my-goto="${kind}" data-key="${esc(entry.key)}">
+          <span class="my-row-title">${esc(entry.item.title)}</span>
+          <span class="my-row-sub">${esc(sub)}</span>
+        </button>
+        <span class="my-score" title="Điểm của bạn">Bạn: <b>${fmt(entry.score)}</b></span>
+        <span class="my-community" title="Điểm trung bình cộng đồng">TB: ${esc(community)}</span>
+      </div>`;
+    };
+    const commentRow = (comment) => {
+      const item = findLinkedItem(comment.kind, comment.key);
+      const when = new Date(comment.at);
+      const time = Number.isFinite(when.getTime()) ? when.toLocaleString("vi-VN") : "";
+      return `<div class="my-row my-comment-row">
+        <button type="button" class="my-goto" data-my-goto="${comment.kind}" data-key="${esc(comment.key)}">
+          <span class="my-row-title">${esc(item ? item.title : comment.key)}</span>
+          <span class="my-row-sub">${esc(time)}</span>
+          <span class="my-comment-text">${esc(comment.text)}</span>
+        </button>
+        <button type="button" class="my-del" data-my-del="${esc(comment.id)}" data-key="${esc(comment.key)}">Xoá</button>
+      </div>`;
+    };
+    box.innerHTML = `
+      <div class="my-stats">
+        <span>🎵 Đã vote <b>${songEntries.length}</b> bài hát (TB ${avgOf(songEntries)})</span>
+        <span>🎬 Đã vote <b>${animeEntries.length}</b> anime (TB ${avgOf(animeEntries)})</span>
+        <span>💬 <b>${comments.length}</b> bình luận</span>
+      </div>
+      <h3 class="my-heading">Bài hát tôi đã vote</h3>
+      ${songEntries.length ? songEntries.map(rowFor("song")).join("") : '<p class="comment-sub">Bạn chưa vote bài hát nào. Ra danh sách nghe và chấm thử nhé!</p>'}
+      <h3 class="my-heading">Anime tôi đã vote</h3>
+      ${animeEntries.length ? animeEntries.map(rowFor("anime")).join("") : '<p class="comment-sub">Bạn chưa vote anime nào.</p>'}
+      <h3 class="my-heading">Bình luận của tôi</h3>
+      ${comments.length ? comments.map(commentRow).join("") : '<p class="comment-sub">Bạn chưa viết bình luận nào.</p>'}
+    `;
+  }
+
+  function openMyModal() {
+    const modal = $("#my-modal");
+    if (!modal) return;
+    renderMyPage();
+    modal.hidden = false;
+  }
+
+  function closeMyModal() {
+    const modal = $("#my-modal");
+    if (modal) modal.hidden = true;
   }
 
   function isOwnerEmail(email) {
@@ -2482,6 +2603,19 @@
 
     const accountBtn = $("#account-btn");
     if (accountBtn) accountBtn.addEventListener("click", () => openAccountModal());
+    const myBtn = $("#my-btn");
+    if (myBtn) myBtn.addEventListener("click", openMyModal);
+    const myClose = $("#my-close");
+    if (myClose) myClose.addEventListener("click", closeMyModal);
+    const myBackdrop = document.querySelector("[data-close-my]");
+    if (myBackdrop) myBackdrop.addEventListener("click", closeMyModal);
+    const myContent = $("#my-content");
+    if (myContent) myContent.addEventListener("click", (e) => {
+      const del = e.target.closest("[data-my-del]");
+      if (del) { deleteMyComment(del.dataset.key, del.dataset.myDel); return; }
+      const go = e.target.closest("[data-my-goto]");
+      if (go) gotoItem(go.dataset.myGoto, go.dataset.key);
+    });
     $("#account-close").addEventListener("click", closeAccountModal);
     const accountBackdrop = document.querySelector("[data-close-account]");
     if (accountBackdrop) accountBackdrop.addEventListener("click", closeAccountModal);

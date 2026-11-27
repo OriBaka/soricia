@@ -855,6 +855,40 @@ body[data-page="anime"] .showcase-card {
 .comment-meta button { border: 0; background: transparent; color: var(--muted); cursor: pointer; font-size: 11px; }
 .comment-meta button:hover { color: var(--pink); }
 .comment-item p { margin: 6px 0 0; white-space: pre-wrap; word-break: break-word; }
+.comment-author.is-owner { color: #ff7b72; font-weight: 800; }
+.comment-owner-tag {
+  color: #ff7b72; border: 1px solid rgba(255, 123, 114, .55); border-radius: 99px;
+  padding: 0 6px; font-size: 9px; font-weight: 800; letter-spacing: .03em;
+}
+
+/* Trang "Của tôi" */
+.my-box { max-width: 560px; }
+.my-stats { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px; }
+.my-stats span {
+  background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: 99px;
+  padding: 5px 11px; font-size: 12px; color: var(--muted);
+}
+.my-stats b { color: var(--text); }
+.my-heading { margin: 18px 0 8px; font-size: 14px; }
+.my-row {
+  display: flex; align-items: center; gap: 10px; padding: 8px 10px; margin-bottom: 6px;
+  background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: 12px;
+}
+.my-goto {
+  flex: 1; min-width: 0; text-align: left; background: none; border: 0; cursor: pointer;
+  display: grid; gap: 1px; color: var(--text); font: inherit;
+}
+.my-goto:hover .my-row-title { color: var(--accent); }
+.my-row-title { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.my-row-sub { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.my-comment-text { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.my-score, .my-community { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.my-score b { color: var(--accent); }
+.my-del {
+  border: 0; background: transparent; color: var(--muted); cursor: pointer; font-size: 12px; flex-shrink: 0;
+}
+.my-del:hover { color: var(--pink); }
+#my-content { max-height: 62vh; overflow: auto; }
 #comment-text {
   width: 100%; padding: 10px 12px; border-radius: 10px; resize: vertical;
   border: 1px solid var(--border-strong); background: var(--surface-2); color: var(--text);
